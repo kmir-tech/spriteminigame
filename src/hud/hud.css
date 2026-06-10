@@ -1,0 +1,1356 @@
+/* ===========================
+   REFERENCE UI MATCH
+   Horizontal Card Carousel
+   =========================== */
+
+:root {
+  --primary: #00e5ff;
+  --primary-dark: #00b8d4;
+  --primary-glow: rgba(0, 229, 255, 0.6);
+  --primary-soft: rgba(0, 229, 255, 0.15);
+
+  --bg-gradient-top: #d8dce5;
+  --bg-gradient-bottom: #e8ecf2;
+
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(180, 190, 200, 0.5);
+
+  --text-dark: #2a3040;
+  --text-muted: #6a7a8a;
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-selected: 0 8px 32px rgba(0, 229, 255, 0.3);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: linear-gradient(180deg, var(--bg-gradient-top) 0%, var(--bg-gradient-bottom) 100%);
+  overflow: hidden;
+  color: var(--text-dark);
+  user-select: none;
+  min-height: 100vh;
+}
+
+#canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ===========================
+   Top Navigation - Centered
+   =========================== */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2.5rem;
+  z-index: 100;
+  background: linear-gradient(180deg, rgba(200, 210, 220, 0.9) 0%, transparent 100%);
+}
+
+.nav-link {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  letter-spacing: 2px;
+  padding: 0.5rem 0;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--text-dark);
+}
+
+.nav-link.active {
+  color: var(--text-dark);
+  border-bottom: 2px solid var(--text-dark);
+}
+
+/* ===========================
+   Cards Carousel - Left Side
+   =========================== */
+.cards-carousel {
+  position: fixed;
+  top: 50%;
+  left: 40px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: -20px;
+  z-index: 50;
+  perspective: 1000px;
+}
+
+/* Character Card */
+.char-card {
+  width: 160px;
+  height: 280px;
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Stacked card positioning */
+.char-card:nth-child(1) {
+  transform: translateX(0) scale(0.88);
+  z-index: 1;
+  opacity: 0.7;
+}
+
+.char-card:nth-child(2) {
+  transform: translateX(-30px) scale(0.94);
+  z-index: 2;
+  opacity: 0.85;
+}
+
+.char-card:nth-child(3) {
+  transform: translateX(-60px) scale(1);
+  z-index: 4;
+}
+
+.char-card:nth-child(4) {
+  transform: translateX(-90px) scale(0.94);
+  z-index: 2;
+  opacity: 0.85;
+}
+
+.char-card:nth-child(5) {
+  transform: translateX(-120px) scale(0.88);
+  z-index: 1;
+  opacity: 0.7;
+}
+
+/* Selected card */
+.char-card.active {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-selected), 0 0 40px var(--primary-glow);
+  transform: translateX(-60px) scale(1.05);
+  z-index: 5;
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(200, 240, 255, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.char-card.active::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--primary), transparent 60%);
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* Card portrait area */
+.card-portrait {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, #c0c8d0 0%, #e0e4e8 100%);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-portrait img,
+.card-portrait .portrait-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.card-portrait .placeholder-icon {
+  font-size: 3rem;
+  color: #8a9aaa;
+}
+
+/* Card info */
+.card-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-align: center;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+}
+
+.card-class {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+
+/* Card stats */
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.7rem;
+}
+
+.card-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-stat-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.card-stat-value {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.card-stat-value.high {
+  color: #00c853;
+}
+
+.card-stat-value.med {
+  color: #ffc107;
+}
+
+.card-stat-value.max {
+  color: var(--primary-dark);
+}
+
+/* ===========================
+   Bottom Section
+   =========================== */
+.bottom-section {
+  position: fixed;
+  bottom: 20px;
+  left: 40px;
+  right: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 50;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ===========================
+   Animation Switching Buttons
+   =========================== */
+.animation-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.anim-buttons-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.anim-buttons-row {
+  display: flex;
+  gap: 10px;
+}
+
+.anim-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.anim-btn:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.anim-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #1a2030;
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+/* Loadouts */
+.loadouts-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.loadout-icons {
+  display: flex;
+  gap: 10px;
+}
+
+.loadout-item {
+  width: 70px;
+  height: 50px;
+  background: var(--card-bg);
+  border: 2px solid var(--card-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.loadout-item svg {
+  width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+}
+
+.loadout-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* Skills */
+.skills-section {
+  display: flex;
+  flex-direction: column;
+  margin-left: 40px;
+}
+
+.skill-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.skill-item {
+  width: 48px;
+  height: 48px;
+  background: rgba(60, 70, 80, 0.8);
+  border: 2px solid rgba(100, 110, 120, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skill-item svg {
+  width: 24px;
+  height: 24px;
+  color: #aab;
+}
+
+.skill-item:hover {
+  border-color: var(--primary);
+}
+
+.skill-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.skill-item.active svg {
+  color: var(--primary);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.btn {
+  padding: 12px 32px;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #1a2030;
+}
+
+.btn-primary:hover {
+  background: #00f5ff;
+  box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: rgba(80, 90, 100, 0.9);
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: rgba(100, 110, 120, 0.95);
+}
+
+.btn-tertiary {
+  background: rgba(80, 90, 100, 0.9);
+  color: #fff;
+}
+
+.btn-tertiary:hover {
+  background: rgba(100, 110, 120, 0.95);
+}
+
+/* ===========================
+   Responsive
+   =========================== */
+@media (max-width: 1024px) {
+  .cards-carousel {
+    left: 20px;
+  }
+
+  .char-card {
+    width: 140px;
+    height: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cards-carousel {
+    top: auto;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .bottom-section {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .loadouts-section,
+  .skills-section {
+    display: none;
+  }
+}
+
+/* ===========================
+   Page System
+   =========================== */
+.page {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.page.active {
+  display: block;
+}
+
+/* Characters page needs pointer-events: none so canvas OrbitControls work */
+#page-characters {
+  pointer-events: none;
+}
+
+#page-characters .cards-carousel,
+#page-characters .bottom-section {
+  pointer-events: auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ===========================
+   Navigation Update
+   =========================== */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+}
+
+.nav-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.nav-links {
+  display: flex;
+  gap: 2.5rem;
+}
+
+/* ===========================
+   HOME PAGE
+   =========================== */
+.home-hero {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, #1a1e2e 0%, #2a3040 50%, #1a2030 100%);
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+  0% {
+    transform: perspective(500px) rotateX(60deg) translateY(0);
+  }
+
+  100% {
+    transform: perspective(500px) rotateX(60deg) translateY(50px);
+  }
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+
+.orb-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--primary);
+  top: 20%;
+  left: 30%;
+  animation: float 8s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 300px;
+  height: 300px;
+  background: #7c4dff;
+  bottom: 20%;
+  right: 20%;
+  animation: float 10s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(30px, -30px);
+  }
+}
+
+.hero-content {
+  text-align: center;
+  z-index: 10;
+}
+
+.logo-container {
+  margin-bottom: 20px;
+}
+
+.logo-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 5rem;
+  font-weight: 700;
+  letter-spacing: 15px;
+  margin: 0;
+}
+
+.logo-keiz {
+  color: #fff;
+}
+
+.logo-ject {
+  color: var(--primary);
+  text-shadow: 0 0 30px var(--primary-glow);
+}
+
+.logo-underline {
+  width: 200px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  margin: 10px auto;
+}
+
+.tagline {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 8px;
+  margin-bottom: 50px;
+}
+
+.hero-buttons {
+  margin-bottom: 60px;
+}
+
+.hero-btn {
+  position: relative;
+  padding: 18px 60px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 4px;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.hero-btn.primary {
+  background: var(--primary);
+  color: #1a2030;
+}
+
+.hero-btn.primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 40px var(--primary-glow);
+}
+
+.hero-btn .btn-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.feature-cards {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+}
+
+.feature-card {
+  width: 180px;
+  padding: 30px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.feature-card:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--primary);
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 15px;
+  color: var(--primary);
+}
+
+.feature-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.feature-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.feature-desc {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.version-tag {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 2px;
+}
+
+/* ===========================
+   LOADOUT PAGE
+   =========================== */
+.loadout-container {
+  width: 100%;
+  height: 100%;
+  padding: 80px 60px 40px;
+  background: linear-gradient(180deg, #1a1e2e 0%, #252a3a 100%);
+  overflow-y: auto;
+}
+
+.loadout-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.loadout-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 5px;
+  margin: 0 0 10px;
+}
+
+.loadout-subtitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 3px;
+}
+
+.loadout-content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+.weapons-section {
+  margin-bottom: 50px;
+}
+
+.weapon-slots {
+  display: flex;
+  gap: 30px;
+}
+
+.weapon-slot {
+  flex: 1;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.weapon-slot:hover {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.weapon-slot.filled {
+  border-style: solid;
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.slot-label {
+  position: absolute;
+  top: 12px;
+  left: 15px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 2px;
+}
+
+.slot-content {
+  text-align: center;
+}
+
+.slot-icon {
+  font-size: 2.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.weapon-slot.filled .slot-icon {
+  color: #fff;
+}
+
+.slot-name {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.weapon-slot.filled .slot-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.skills-section-loadout {
+  margin-bottom: 50px;
+}
+
+.skill-slots {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+}
+
+.skill-slot {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.skill-slot:hover {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.skill-slot.filled {
+  border-style: solid;
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.slot-number {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  color: #1a2030;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skill-slot .slot-icon {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+/* Selection Modal */
+.selection-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.selection-modal.active {
+  display: flex;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  background: #1a1e2e;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 3px;
+  margin: 0;
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 100, 100, 0.3);
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  padding: 25px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modal-item {
+  padding: 20px 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-item:hover {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.1);
+  transform: scale(1.02);
+}
+
+.item-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.item-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.item-stats {
+  font-size: 0.65rem;
+}
+
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.stat-bar span {
+  width: 30px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.stat-bar .bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stat-bar .bar div {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+.item-desc {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 5px;
+}
+
+.item-cooldown {
+  font-size: 0.65rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Loadout Actions */
+.loadout-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.loadout-actions .btn.saved {
+  background: #00c853;
+}
+
+/* ===========================
+   GAMEPLAY PAGE
+   =========================== */
+.game-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #1a1a22;
+}
+
+/* Game HUD */
+.game-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.health-bar {
+  width: 200px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  width: 100%;
+  background: #00e676;
+  transition: width 0.2s, background 0.3s;
+}
+
+.health-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+}
+
+.hud-center {
+  text-align: center;
+}
+
+.room-indicator {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.hud-right {
+  text-align: right;
+}
+
+.controls-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
+}
+
+/* Game Over Overlay */
+.game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.game-over-content {
+  text-align: center;
+}
+
+.game-over-content h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #ff4444;
+  letter-spacing: 5px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+}
+
+.game-over-content p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 40px;
+}
+
+.game-over-content .btn {
+  margin: 0 10px;
+  pointer-events: auto;
+}
+
+/* ===========================
+   Power-Up Icons in HUD
+   =========================== */
+.power-ups {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.power-up-icon {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+}
+
+/* ===========================
+   Boss HP Bar
+   =========================== */
+.boss-hp-container {
+  margin-top: 10px;
+}
+
+.boss-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ff5252;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+  margin-bottom: 5px;
+}
+
+.boss-hp-bar {
+  width: 300px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid #ff5252;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255, 82, 82, 0.3);
+}
+
+.boss-hp-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff5252, #ff8a80);
+  transition: width 0.2s;
+}
+
+/* ===========================
+   Power-Up Selection Overlay
+   =========================== */
+.power-up-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.power-up-selection {
+  text-align: center;
+}
+
+.power-up-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffd700;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.power-up-subtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 3px;
+  margin-bottom: 40px;
+}
+
+.power-up-cards {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+}
+
+.power-up-card {
+  width: 200px;
+  padding: 30px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+.power-up-card:hover {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+}
+
+.power-up-card-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+.power-up-card-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.power-up-card-desc {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
