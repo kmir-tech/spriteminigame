@@ -10,7 +10,7 @@ export class GamePage {
         this.characterData = null;
     }
 
-    init(characterData, onExit) {
+    init(characterData, loadout, onExit) {
         this.characterData = characterData;
         this.onExit = onExit;
 
@@ -26,7 +26,7 @@ export class GamePage {
         // Start game engine
         this.gameEngine = new GameEngine(gameContainer, characterData, () => {
             this.exit();
-        });
+        }, loadout);
 
         this.gameEngine.start();
     }

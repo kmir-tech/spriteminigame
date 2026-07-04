@@ -17,6 +17,7 @@ class Enemy {
         this.speed = config.speed || 2;
         this.active = true;
         this.facingRight = true;
+        this.isElite = false;
 
         // Sprite config
         this.spriteFolder = config.spriteFolder || null;
@@ -109,6 +110,32 @@ class Enemy {
             return true;
         }
         return false;
+    }
+
+    makeElite() {
+        this.isElite = true;
+        this.health = Math.round(this.health * 2.0);
+        this.maxHealth = this.health;
+        this.damage = Math.round(this.damage * 1.5);
+        this.speed = this.speed * 1.25;
+
+        // Visual upgrades: scaled geometry/sprite and colored overlay
+        if (this.sprite) {
+            this.sprite.scaleMultiplier = 1.4;
+            this.sprite.mesh.scale.set(
+                (this.sprite.facingRight ? 1 : -1) * 1.4,
+                1.4,
+                1.4
+            );
+            if (this.sprite.material) {
+                this.sprite.material.color.setHex(0xffaa00); // Gold/Orange glowing tint
+            }
+        } else if (this.mesh) {
+            this.mesh.scale.set(1.4, 1.4, 1.4);
+            if (this.mesh.material) {
+                this.mesh.material.color.setHex(0xffaa00); // Gold/Orange glowing tint
+            }
+        }
     }
 
     die() {
@@ -307,7 +334,7 @@ export class WandererEnemy extends Enemy {
  * HP doubles each boss encounter (100 → 200 → 400 → 800...)
  */
 export class BossEnemy extends Enemy {
-    constructor(scene, x, y, hp = 100) {
+    constructor(scene, x, y, hp = 100, projectileManager = null, enemyManager = null) {
         super(scene, x, y, {
             health: hp,
             speed: 1.8, // Slower but menacing
@@ -318,8 +345,9 @@ export class BossEnemy extends Enemy {
             frameCount: 6
         });
         this.isBoss = true;
-        this.attackCooldown = 0;
-        this.attackInterval = 1.5; // Seconds between attacks
+        this.projectileManager = projectileManager;
+        this.enemyManager = enemyManager;
+        this.attackTimer = 1.8; // Time before first attack
     }
 
     update(dt, playerX, playerY, bounds) {
@@ -327,10 +355,34 @@ export class BossEnemy extends Enemy {
 
         super.update(dt, playerX, playerY, bounds);
 
-        // Don't move during hurt
+        // Don't move during hurt or dead states
         if (this.currentState === 'hurt' || this.currentState === 'dead') return;
 
-        // Move toward player (like Chaser but slower)
+        // Boss Attack Pattern Cycles
+        if (this.attackTimer > 0) {
+            this.attackTimer -= dt;
+        } else {
+            const healthPercentage = this.health / this.maxHealth;
+            
+            // Under 50% HP, boss goes into phase 2 (faster movement speed)
+            if (healthPercentage < 0.5) {
+                this.speed = 2.4;
+            }
+
+            const roll = Math.random();
+            if (roll < 0.4) {
+                this.executeBulletSpiral();
+            } else if (roll < 0.8) {
+                this.executeTargetedTriShot(playerX, playerY);
+            } else {
+                this.executeSummonMinions();
+            }
+
+            // Phase 2 attacks are more frequent
+            this.attackTimer = healthPercentage < 0.5 ? 2.2 : 3.2;
+        }
+
+        // Move toward player
         const dx = playerX - this.x;
         const dy = playerY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -344,12 +396,12 @@ export class BossEnemy extends Enemy {
                 this.sprite.setFacing(dx > 0);
             }
 
-            // Play run animation (with guard)
+            // Play run animation
             if (this.currentState !== 'run') {
                 this.setState('run');
             }
         } else {
-            // Attack when close (with guard)
+            // Melee swing when extremely close
             if (this.currentState !== 'attack') {
                 this.setState('attack');
             }
@@ -367,6 +419,95 @@ export class BossEnemy extends Enemy {
             this.mesh.position.x = this.x;
             this.mesh.position.y = this.y;
         }
+    }
+
+    executeBulletSpiral() {
+        if (!this.projectileManager) return;
+        this.setState('attack');
+
+        const bulletCount = 14;
+        const bulletSpeed = 4.8;
+        
+        for (let i = 0; i < bulletCount; i++) {
+            const angle = (i / bulletCount) * Math.PI * 2;
+            const dirX = Math.cos(angle);
+            const dirY = Math.sin(angle);
+
+            this.projectileManager.spawn(
+                this.x, this.y,
+                dirX, dirY,
+                bulletSpeed,
+                this.damage * 0.6,
+                false // Enemy bullet
+            );
+        }
+    }
+
+    executeTargetedTriShot(playerX, playerY) {
+        if (!this.projectileManager) return;
+        this.setState('attack');
+
+        let count = 0;
+        const fireBurst = () => {
+            if (!this.active || this.health <= 0) return;
+
+            const dx = playerX - this.x;
+            const dy = playerY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 0.1) {
+                const nx = dx / dist;
+                const ny = dy / dist;
+
+                // Fire 3 bullets in a tight spread centered on player position
+                const spreadAngle = 0.22;
+                for (let i = -1; i <= 1; i++) {
+                    const angleOffset = i * spreadAngle;
+                    const cosVal = Math.cos(angleOffset);
+                    const sinVal = Math.sin(angleOffset);
+                    
+                    const rx = nx * cosVal - ny * sinVal;
+                    const ry = nx * sinVal + ny * cosVal;
+
+                    this.projectileManager.spawn(
+                        this.x, this.y,
+                        rx, ry,
+                        6.5, // Faster bullets
+                        this.damage * 0.5,
+                        false
+                    );
+                }
+            }
+
+            count++;
+            if (count < 3) {
+                setTimeout(fireBurst, 320); // Quick consecutive tri-shot bursts
+            }
+        };
+        
+        fireBurst();
+    }
+
+    executeSummonMinions() {
+        if (!this.enemyManager) return;
+        this.setState('hurt'); // Roar trigger stance
+
+        const offsets = [
+            { x: -1.6, y: -1.6 },
+            { x: 1.6, y: -1.6 }
+        ];
+
+        offsets.forEach(offset => {
+            const sx = this.x + offset.x;
+            const sy = this.y + offset.y;
+
+            // Spawn dynamic minions at offset positions
+            if (Math.random() > 0.5) {
+                this.enemyManager.spawnChaser(sx, sy);
+            } else {
+                this.enemyManager.spawnWanderer(sx, sy, false);
+            }
+        });
     }
 }
 
@@ -592,6 +733,7 @@ export class EnemyManager {
 
     spawnChaser(x, y) {
         const enemy = new ChaserEnemy(this.scene, x, y);
+        if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;
     }
@@ -601,30 +743,34 @@ export class EnemyManager {
             this.scene, x, y,
             canShoot ? this.projectileManager : null
         );
+        if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;
     }
 
     spawnBoss(x, y, hp = 100) {
-        const enemy = new BossEnemy(this.scene, x, y, hp);
+        const enemy = new BossEnemy(this.scene, x, y, hp, this.projectileManager, this);
         this.enemies.push(enemy);
         return enemy;
     }
 
     spawnShooter(x, y) {
         const enemy = new ShooterEnemy(this.scene, x, y, this.projectileManager);
+        if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;
     }
 
     spawnBomber(x, y) {
         const enemy = new BomberEnemy(this.scene, x, y);
+        if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;
     }
 
     spawnSplitter(x, y, size = 'large') {
         const enemy = new SplitterEnemy(this.scene, x, y, this, size);
+        if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;
     }

@@ -16,7 +16,11 @@ export class AudioManager {
             playerHit: { type: 'sawtooth', freq: 100, duration: 0.2, decay: 0.15 },
             doorOpen: { type: 'sine', freq: 600, duration: 0.2, decay: 0.1, slide: 200 },
             powerUp: { type: 'sine', freq: 500, duration: 0.3, decay: 0.2, slide: 300 },
-            bossSpawn: { type: 'square', freq: 80, duration: 0.5, decay: 0.4 }
+            bossSpawn: { type: 'square', freq: 80, duration: 0.5, decay: 0.4 },
+            selectWarrior: { type: 'sawtooth', freq: 150, duration: 0.35, decay: 0.25, slide: -60 },
+            selectMage: { type: 'sine', freq: 300, duration: 0.45, decay: 0.35, slide: 500 },
+            selectAssassin: { type: 'triangle', freq: 450, duration: 0.2, decay: 0.15, slide: 150 },
+            selectTank: { type: 'square', freq: 80, duration: 0.6, decay: 0.5, slide: -30 }
         };
 
         // Lazy init audio context (must be triggered by user interaction)
@@ -43,7 +47,13 @@ export class AudioManager {
      * @param {string} name - Sound name from soundDefs
      */
     play(name) {
-        if (!this.enabled || !this.context) return;
+        if (!this.enabled) return;
+
+        if (!this.context) {
+            this.init();
+        }
+
+        if (!this.context) return;
 
         const def = this.soundDefs[name];
         if (!def) return;

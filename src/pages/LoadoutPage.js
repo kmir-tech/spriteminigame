@@ -27,6 +27,11 @@ const skills = [
     { id: 'boost', name: 'Power Surge', icon: '⚡', cooldown: '25s', desc: 'Increase damage output' }
 ];
 
+const itemLocks = {
+    'sniper': { requirement: 'Defeat 1 Boss', check: (milestones) => (milestones.bossesDefeated || 0) >= 1 },
+    'boost': { requirement: 'Reach Room 8', check: (milestones) => (milestones.maxRoomReached || 1) >= 8 }
+};
+
 export class LoadoutPage {
     constructor() {
         this.container = document.getElementById('page-loadouts');
@@ -42,6 +47,48 @@ export class LoadoutPage {
         if (!this.container) return;
 
         this.container.innerHTML = `
+            <style>
+            .modal-item.locked {
+                position: relative;
+                opacity: 0.6;
+                filter: grayscale(0.8);
+                cursor: not-allowed !important;
+                border-color: #444 !important;
+            }
+            .modal-item.locked:hover {
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+            .lock-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(10, 10, 20, 0.8);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                border-radius: 4px;
+                pointer-events: none;
+                z-index: 10;
+            }
+            .lock-icon {
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+            .lock-req {
+                font-size: 0.8rem;
+                color: #ff0055;
+                font-weight: bold;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                text-align: center;
+                padding: 0 5px;
+            }
+            </style>
+
             <div class="loadout-container">
                 <div class="loadout-header">
                     <h2 class="loadout-title">LOADOUT</h2>
@@ -175,25 +222,41 @@ export class LoadoutPage {
             items = skills;
         }
 
-        grid.innerHTML = items.map(item => `
-            <div class="modal-item" data-id="${item.id}">
-                <div class="item-icon">${item.icon}</div>
-                <div class="item-name">${item.name}</div>
-                ${item.stats ? `
-                    <div class="item-stats">
-                        <div class="stat-bar"><span>DMG</span><div class="bar"><div style="width:${item.stats.damage}%"></div></div></div>
-                        <div class="stat-bar"><span>RNG</span><div class="bar"><div style="width:${item.stats.range}%"></div></div></div>
-                        <div class="stat-bar"><span>SPD</span><div class="bar"><div style="width:${item.stats.speed}%"></div></div></div>
-                    </div>
-                ` : `
-                    <div class="item-desc">${item.desc}</div>
-                    <div class="item-cooldown">${item.cooldown}</div>
-                `}
-            </div>
-        `).join('');
+        const milestones = JSON.parse(localStorage.getItem('keizject_milestones') || '{"bossesDefeated": 0, "maxRoomReached": 1}');
+
+        grid.innerHTML = items.map(item => {
+            const lockInfo = itemLocks[item.id];
+            const isLocked = lockInfo ? !lockInfo.check(milestones) : false;
+
+            return `
+                <div class="modal-item ${isLocked ? 'locked' : ''}" data-id="${item.id}">
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    ${item.stats ? `
+                        <div class="item-stats">
+                            <div class="stat-bar"><span>DMG</span><div class="bar"><div style="width:${item.stats.damage}%"></div></div></div>
+                            <div class="stat-bar"><span>RNG</span><div class="bar"><div style="width:${item.stats.range}%"></div></div></div>
+                            <div class="stat-bar"><span>SPD</span><div class="bar"><div style="width:${item.stats.speed}%"></div></div></div>
+                        </div>
+                    ` : `
+                        <div class="item-desc">${item.desc}</div>
+                        <div class="item-cooldown">${item.cooldown}</div>
+                    `}
+                    ${isLocked ? `
+                        <div class="lock-overlay">
+                            <span class="lock-icon">🔒</span>
+                            <span class="lock-req">${lockInfo.requirement}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
 
         // Item click handlers
         grid.querySelectorAll('.modal-item').forEach(item => {
+            if (item.classList.contains('locked')) {
+                return; // Disabled selection
+            }
             item.addEventListener('click', () => {
                 this.selectItem(item.dataset.id, items);
             });

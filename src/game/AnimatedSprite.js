@@ -15,6 +15,7 @@ export class AnimatedSprite {
         this.loop = config.loop !== false;
         this.size = config.size || 1.0;
         this.facingRight = true;
+        this.scaleMultiplier = config.scaleMultiplier || 1.0;
 
         // Visual interpolation for smooth rendering (Isaac-style)
         this.renderX = 0;
@@ -33,6 +34,7 @@ export class AnimatedSprite {
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.position.z = 0.1;
+        this.mesh.scale.set(this.scaleMultiplier, this.scaleMultiplier, this.scaleMultiplier);
         scene.add(this.mesh);
     }
 
@@ -138,7 +140,11 @@ export class AnimatedSprite {
      */
     setFacing(right) {
         this.facingRight = right;
-        this.mesh.scale.x = right ? 1 : -1;
+        this.mesh.scale.set(
+            (right ? 1 : -1) * this.scaleMultiplier,
+            this.scaleMultiplier,
+            this.scaleMultiplier
+        );
     }
 
     /**

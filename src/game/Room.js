@@ -1,9 +1,5 @@
 import * as THREE from 'three';
 
-/**
- * Room templates and current room state
- */
-
 // Room template definitions
 const ROOM_TEMPLATES = [
     {
@@ -59,6 +55,14 @@ const ROOM_TEMPLATES = [
     }
 ];
 
+// Define a shop template with no enemies
+const SHOP_TEMPLATE = {
+    id: 'shop',
+    enemies: [],
+    doors: ['left', 'right'],
+    isShop: true
+};
+
 /**
  * Room class - handles walls, doors, and bounds
  */
@@ -81,20 +85,35 @@ export class Room {
         };
 
         this.meshes = [];
+        this.terminals = [];
         this.createRoom();
     }
 
     createRoom() {
-        // Floor
+        // Floor Plane
         const floorGeo = new THREE.PlaneGeometry(this.width, this.height);
-        const floorMat = new THREE.MeshBasicMaterial({ color: 0x2a2a35 });
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: 0x181822,
+            roughness: 0.4,
+            metalness: 0.8
+        });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.position.z = -0.1;
         this.scene.add(floor);
         this.meshes.push(floor);
 
+        // Floor Neon Grid (pulsing cyan & purple cyberpunk wireframes)
+        const gridSize = Math.max(this.width, this.height) + 2;
+        const gridHelper = new THREE.GridHelper(gridSize, 20, 0x00ffff, 0xbd00ff);
+        gridHelper.rotation.x = Math.PI / 2;
+        gridHelper.position.set(0, 0, -0.09);
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.35;
+        this.scene.add(gridHelper);
+        this.meshes.push(gridHelper);
+
         // Walls
-        const wallColor = 0x4a4a55;
+        const wallColor = 0x2d2d38;
         const wallThickness = 0.5;
 
         // Top wall
@@ -105,11 +124,62 @@ export class Room {
         this.createWall(-this.halfW, 0, wallThickness, this.height, wallColor);
         // Right wall
         this.createWall(this.halfW, 0, wallThickness, this.height, wallColor);
+
+        // Sci-Fi corner terminals and batteries
+        const cornerCoords = [
+            { x: -this.halfW + 0.75, y: this.halfH - 0.75 },
+            { x: this.halfW - 0.75, y: this.halfH - 0.75 },
+            { x: -this.halfW + 0.75, y: -this.halfH + 0.75 },
+            { x: this.halfW - 0.75, y: -this.halfH + 0.75 }
+        ];
+        const terminalColors = [0x00ffff, 0xbd00ff, 0x00ffaa, 0xff0055];
+
+        cornerCoords.forEach((coord, index) => {
+            const neonColor = terminalColors[index % terminalColors.length];
+
+            // Terminal Base
+            const baseGeo = new THREE.BoxGeometry(0.5, 0.5, 0.4);
+            const baseMat = new THREE.MeshStandardMaterial({
+                color: 0x1a1a24,
+                roughness: 0.5,
+                metalness: 0.8
+            });
+            const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+            baseMesh.position.set(coord.x, coord.y, 0.2);
+            this.scene.add(baseMesh);
+            this.meshes.push(baseMesh);
+
+            // Glowing Screen
+            const screenGeo = new THREE.BoxGeometry(0.3, 0.3, 0.05);
+            const screenMat = new THREE.MeshBasicMaterial({ color: neonColor });
+            const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+            screenMesh.position.set(coord.x, coord.y, 0.41);
+            this.scene.add(screenMesh);
+            this.meshes.push(screenMesh);
+
+            // Flickering Point Light
+            const light = new THREE.PointLight(neonColor, 1.5, 5);
+            light.position.set(coord.x, coord.y, 0.5);
+            this.scene.add(light);
+            this.meshes.push(light);
+
+            this.terminals.push({
+                screen: screenMesh,
+                light: light,
+                baseIntensity: 1.5,
+                pulseSpeed: 3 + Math.random() * 2,
+                timeOffset: Math.random() * Math.PI * 2
+            });
+        });
     }
 
     createWall(x, y, w, h, color) {
         const geo = new THREE.PlaneGeometry(w, h);
-        const mat = new THREE.MeshBasicMaterial({ color });
+        const mat = new THREE.MeshStandardMaterial({
+            color,
+            roughness: 0.5,
+            metalness: 0.7
+        });
         const wall = new THREE.Mesh(geo, mat);
         wall.position.set(x, y, 0);
         this.scene.add(wall);
@@ -118,8 +188,8 @@ export class Room {
 
     createDoors(doorPositions) {
         const doorSize = 1.5;
-        const doorColor = 0x664422;
-        const openColor = 0x00aa44;
+        const closedColor = 0xff0055; // Red locked neon
+        const openColor = 0x00ffff;   // Cyan open neon
 
         for (const pos of doorPositions) {
             let x, y, w, h;
@@ -127,49 +197,76 @@ export class Room {
             switch (pos) {
                 case 'left':
                     x = -this.halfW; y = 0;
-                    w = 0.5; h = doorSize;
+                    w = 0.4; h = doorSize;
                     break;
                 case 'right':
                     x = this.halfW; y = 0;
-                    w = 0.5; h = doorSize;
+                    w = 0.4; h = doorSize;
                     break;
                 case 'up':
                     x = 0; y = this.halfH;
-                    w = doorSize; h = 0.5;
+                    w = doorSize; h = 0.4;
                     break;
                 case 'down':
                     x = 0; y = -this.halfH;
-                    w = doorSize; h = 0.5;
+                    w = doorSize; h = 0.4;
                     break;
                 default: continue;
             }
 
             const geo = new THREE.PlaneGeometry(w, h);
-            const mat = new THREE.MeshBasicMaterial({ color: doorColor });
-            const door = new THREE.Mesh(geo, mat);
-            door.position.set(x, y, 0.02);
-            this.scene.add(door);
-            this.meshes.push(door);
+            const mat = new THREE.MeshBasicMaterial({
+                color: closedColor,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            const doorMesh = new THREE.Mesh(geo, mat);
+            doorMesh.position.set(x, y, 0.05);
+            this.scene.add(doorMesh);
+            this.meshes.push(doorMesh);
 
-            this.doors[pos] = { mesh: door, closedColor: doorColor, openColor };
+            this.doors[pos] = {
+                mesh: doorMesh,
+                isOpen: false,
+                closedColor,
+                openColor,
+                pos,
+                update: (dt) => {
+                    const targetScale = this.doorsOpen ? 0.01 : 1.0;
+                    const targetOpacity = this.doorsOpen ? 0.0 : 0.8;
+                    const targetColor = this.doorsOpen ? openColor : closedColor;
+
+                    // Vertical scale contraction
+                    if (pos === 'left' || pos === 'right') {
+                        doorMesh.scale.y += (targetScale - doorMesh.scale.y) * 8 * dt;
+                    } else {
+                        doorMesh.scale.x += (targetScale - doorMesh.scale.x) * 8 * dt;
+                    }
+
+                    // Opacity fade transition
+                    doorMesh.material.opacity += (targetOpacity - doorMesh.material.opacity) * 8 * dt;
+
+                    // Color lerping
+                    doorMesh.material.color.lerp(new THREE.Color(targetColor), 8 * dt);
+
+                    // Humming flicker
+                    if (!this.doorsOpen) {
+                        const hum = Math.sin(Date.now() * 0.015) * 0.07;
+                        doorMesh.material.opacity = Math.max(0.2, 0.8 + hum);
+                    }
+                }
+            };
         }
     }
 
     openDoors() {
         if (this.doorsOpen) return;
         this.doorsOpen = true;
-
-        for (const door of Object.values(this.doors)) {
-            door.mesh.material.color.setHex(door.openColor);
-        }
     }
 
     closeDoors() {
         this.doorsOpen = false;
-
-        for (const door of Object.values(this.doors)) {
-            door.mesh.material.color.setHex(door.closedColor);
-        }
     }
 
     checkDoorCollision(x, y, radius) {
@@ -183,7 +280,6 @@ export class Room {
 
             switch (pos) {
                 case 'right':
-                    // Check if player is at right edge and within door width
                     isNearDoor = x > this.halfW - doorCheckDistance && Math.abs(y) < doorWidth;
                     break;
                 case 'left':
@@ -205,14 +301,46 @@ export class Room {
         return null;
     }
 
+    update(dt) {
+        const time = Date.now() * 0.001;
+        // Pulse terminals
+        if (this.terminals) {
+            for (const t of this.terminals) {
+                const flicker = Math.sin(time * t.pulseSpeed + t.timeOffset);
+                const randomFlicker = (Math.random() - 0.5) * 0.12;
+                const newIntensity = t.baseIntensity * (0.8 + 0.2 * flicker) + randomFlicker;
+                t.light.intensity = Math.max(0.2, newIntensity);
+
+                const scaleVal = 1.0 + 0.04 * flicker;
+                t.screen.scale.set(scaleVal, scaleVal, 1.0);
+            }
+        }
+
+        // Update animated doors
+        if (this.doors) {
+            for (const door of Object.values(this.doors)) {
+                if (door.update) {
+                    door.update(dt);
+                }
+            }
+        }
+    }
+
     destroy() {
         for (const mesh of this.meshes) {
             this.scene.remove(mesh);
-            mesh.geometry.dispose();
-            mesh.material.dispose();
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                    mesh.material.forEach(m => m.dispose());
+                } else {
+                    mesh.material.dispose();
+                }
+            }
         }
         this.meshes = [];
         this.doors = {};
+        this.terminals = [];
     }
 }
 
@@ -239,6 +367,9 @@ export class RoomManager {
     }
 
     getCurrentTemplate() {
+        if (this.isShopRoom()) {
+            return SHOP_TEMPLATE;
+        }
         return this.roomSequence[this.currentRoomIndex];
     }
 
@@ -246,8 +377,16 @@ export class RoomManager {
      * Check if current room is a boss room (every 5th room: 5, 10, 15...)
      */
     isBossRoom() {
-        const roomNum = this.currentRoomIndex + 1;
+        const roomNum = this.getRoomNumber();
         return roomNum > 0 && roomNum % 5 === 0;
+    }
+
+    /**
+     * Check if current room is a shop room (every 4th room, except boss rooms)
+     */
+    isShopRoom() {
+        const roomNum = this.getRoomNumber();
+        return roomNum > 0 && roomNum % 4 === 0 && roomNum % 5 !== 0;
     }
 
     /**

@@ -1354,3 +1354,237 @@ body {
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 1px;
 }
+
+/* ==========================================================================
+   GOATED GAMEPLAY HUD ADDITIONS (Crosshair, Active Weapons, Skills, VFX)
+   ========================================================================== */
+
+/* 1. Custom Cyberpunk Crosshair */
+.game-crosshair {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  margin-top: -18px;
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease-out;
+}
+
+.crosshair-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed #00e5ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+  animation: crosshair-rotate 4s linear infinite;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.crosshair-dot {
+  width: 5px;
+  height: 5px;
+  background-color: #00e5ff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #00e5ff;
+}
+
+.game-crosshair.firing {
+  transform: scale(1.35);
+}
+
+.game-crosshair.firing .crosshair-ring {
+  border-color: #ff1744;
+  box-shadow: 0 0 12px rgba(255, 23, 68, 0.6);
+}
+
+@keyframes crosshair-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 2. Left HUD Layout Adjustments */
+.hud-health-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hud-weapon-panel {
+  margin-top: 15px;
+  width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(12, 12, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.hud-weapon-panel .weapon-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.4));
+}
+
+.hud-weapon-panel .weapon-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.hud-weapon-panel .weapon-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.hud-weapon-panel .weapon-slot-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #00e5ff;
+  letter-spacing: 1.5px;
+  margin-top: 2px;
+}
+
+.hud-weapon-panel .weapon-hint {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+/* 3. Skills Hotbar */
+.hud-skills-hotbar {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  pointer-events: auto;
+  z-index: 100;
+}
+
+.hud-skill-slot {
+  width: 65px;
+  height: 65px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 12, 20, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  position: relative;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.hud-skill-slot:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+}
+
+.hud-skill-slot .skill-icon {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+  z-index: 2;
+}
+
+.hud-skill-slot .skill-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+  z-index: 2;
+}
+
+.hud-skill-slot .skill-badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #000;
+  background-color: #00e5ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+  z-index: 5;
+}
+
+.hud-skill-slot .skill-cd-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.65);
+  height: 0%;
+  border-radius: 10px;
+  z-index: 3;
+}
+
+.hud-skill-slot .skill-cd-text {
+  position: absolute;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  z-index: 4;
+  text-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.hud-skill-slot.on-cooldown {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.hud-skill-slot.on-cooldown .skill-icon,
+.hud-skill-slot.on-cooldown .skill-name {
+  opacity: 0.3;
+}
+
+.hud-skill-slot.empty-slot {
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+}
+.hud-skill-slot.empty-slot .skill-icon {
+  opacity: 0.2;
+}
+.hud-skill-slot.empty-slot .skill-badge {
+  display: none;
+}
+
+/* 4. Floating VFX Texts */
+@keyframes floatUp {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -65%) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -100%) scale(1);
+    opacity: 0;
+  }
+}
+
+.floating-vfx {
+  animation: floatUp 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}

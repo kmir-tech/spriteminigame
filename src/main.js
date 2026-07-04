@@ -1,3 +1,4 @@
+import gsap from 'gsap';
 import { createScene, updateParticles } from './scene.js';
 import { CharacterManager } from './characters/CharacterManager.js';
 import { HudController } from './hud/HudController.js';
@@ -51,6 +52,7 @@ class App {
     startGame() {
         // Get selected character data
         const characterData = characters[this.selectedCharacterIndex];
+        const loadout = this.loadoutPage ? this.loadoutPage.loadout : null;
 
         // Stop character scene
         this.stopScene();
@@ -58,8 +60,8 @@ class App {
         // Navigate to gameplay
         this.router.goTo('gameplay');
 
-        // Initialize game with character
-        this.gamePage.init(characterData, () => {
+        // Initialize game with character and loadout
+        this.gamePage.init(characterData, loadout, () => {
             // On game exit, return to character select
             this.router.goTo('characters');
         });
@@ -140,6 +142,45 @@ class App {
         if (index === currentIndex) return;
 
         this.selectedCharacterIndex = index;
+
+        // Tailor coordinates to each class for cinematic camera swoops
+        let targetCam = { x: 2, y: 1.6, z: 5 };
+        let targetTar = { x: 1.5, y: 1.0, z: 0 };
+
+        if (index === 0) { // Warrior: Low heroic angle to emphasize strength
+            targetCam = { x: 2.5, y: 0.9, z: 4.0 };
+            targetTar = { x: 1.5, y: 1.1, z: 0 };
+        } else if (index === 1) { // Mage: Higher mystical look focusing on head/staff
+            targetCam = { x: 1.4, y: 2.2, z: 3.5 };
+            targetTar = { x: 1.5, y: 1.4, z: 0 };
+        } else if (index === 2) { // Assassin: Sharp side-angle close-up for agility
+            targetCam = { x: 3.0, y: 1.3, z: 3.0 };
+            targetTar = { x: 1.5, y: 1.2, z: 0 };
+        } else if (index === 3) { // Tank: Wide, stable view for imposing scale
+            targetCam = { x: 2.0, y: 1.7, z: 5.5 };
+            targetTar = { x: 1.5, y: 1.0, z: 0 };
+        }
+
+        // Animate camera and controls target using GSAP
+        if (this.camera && this.controls) {
+            gsap.killTweensOf(this.camera.position);
+            gsap.killTweensOf(this.controls.target);
+            
+            gsap.to(this.camera.position, {
+                x: targetCam.x,
+                y: targetCam.y,
+                z: targetCam.z,
+                duration: 1.2,
+                ease: 'power3.out'
+            });
+            gsap.to(this.controls.target, {
+                x: targetTar.x,
+                y: targetTar.y,
+                z: targetTar.z,
+                duration: 1.2,
+                ease: 'power3.out'
+            });
+        }
 
         const direction = index > currentIndex ? 'left' : 'right';
         this.characterManager.switchTo(index, direction, () => {
