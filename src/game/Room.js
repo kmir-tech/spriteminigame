@@ -11,7 +11,8 @@ const ROOM_TEMPLATES = [
         id: 'easy1',
         enemies: [
             { type: 'chaser', x: -3, y: 2 },
-            { type: 'chaser', x: 3, y: -2 }
+            { type: 'chaser', x: 3, y: -2 },
+            { type: 'goblin', x: 0, y: 1 }
         ],
         doors: ['left', 'right']
     },
@@ -19,7 +20,8 @@ const ROOM_TEMPLATES = [
         id: 'easy2',
         enemies: [
             { type: 'wanderer', x: -4, y: 0 },
-            { type: 'wanderer', x: 4, y: 0 }
+            { type: 'wanderer', x: 4, y: 0 },
+            { type: 'goblin', x: -2, y: 2 }
         ],
         doors: ['left', 'right']
     },
@@ -27,8 +29,9 @@ const ROOM_TEMPLATES = [
         id: 'medium1',
         enemies: [
             { type: 'chaser', x: -3, y: 2 },
-            { type: 'chaser', x: 3, y: 2 },
-            { type: 'wanderer', x: 0, y: -2 }
+            { type: 'goblin', x: 3, y: 2 },
+            { type: 'wanderer', x: 0, y: -2 },
+            { type: 'shooter', x: -5, y: -2 }
         ],
         doors: ['left', 'right', 'up']
     },
@@ -37,8 +40,9 @@ const ROOM_TEMPLATES = [
         enemies: [
             { type: 'chaser', x: -4, y: 0 },
             { type: 'chaser', x: 4, y: 0 },
-            { type: 'chaser', x: 0, y: 3 },
-            { type: 'wanderer', x: 0, y: -3 }
+            { type: 'goblin', x: 0, y: 3 },
+            { type: 'wanderer', x: 0, y: -3 },
+            { type: 'shooter', x: 5, y: 3 }
         ],
         doors: ['left', 'right']
     },
@@ -49,9 +53,32 @@ const ROOM_TEMPLATES = [
             { type: 'chaser', x: 3, y: 2 },
             { type: 'chaser', x: -3, y: -2 },
             { type: 'chaser', x: 3, y: -2 },
-            { type: 'wanderer', x: 0, y: 0 }
+            { type: 'ogre', x: 0, y: 0 }
         ],
         doors: ['left', 'right']
+    },
+    {
+        id: 'hard2',
+        enemies: [
+            { type: 'ogre', x: -2, y: 1 },
+            { type: 'goblin', x: 4, y: 2 },
+            { type: 'goblin', x: -4, y: -2 },
+            { type: 'shooter', x: 5, y: -3 },
+            { type: 'bomber', x: 0, y: -3 }
+        ],
+        doors: ['left', 'right', 'up']
+    },
+    {
+        id: 'hard3',
+        enemies: [
+            { type: 'ogre', x: -3, y: 0 },
+            { type: 'ogre', x: 3, y: 0 },
+            { type: 'shooter', x: 0, y: 3 },
+            { type: 'shooter', x: 0, y: -3 },
+            { type: 'splitter', x: -5, y: 2 },
+            { type: 'splitter', x: 5, y: -2 }
+        ],
+        doors: ['left', 'right', 'up', 'down']
     }
 ];
 
@@ -92,10 +119,20 @@ export class Room {
     createRoom() {
         // Floor Plane
         const floorGeo = new THREE.PlaneGeometry(this.width, this.height);
+        
+        const loader = new THREE.TextureLoader();
+        // Load floor texture and repeat it across the room size
+        const floorTex = loader.load('/Map_tiles/Map_tile_12.png');
+        floorTex.wrapS = THREE.RepeatWrapping;
+        floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(this.width, this.height);
+        floorTex.minFilter = THREE.NearestFilter;
+        floorTex.magFilter = THREE.NearestFilter;
+
         const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x181822,
-            roughness: 0.4,
-            metalness: 0.8
+            map: floorTex,
+            roughness: 0.7,
+            metalness: 0.2
         });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.position.z = -0.1;
@@ -108,7 +145,7 @@ export class Room {
         gridHelper.rotation.x = Math.PI / 2;
         gridHelper.position.set(0, 0, -0.09);
         gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.35;
+        gridHelper.material.opacity = 0.22;
         this.scene.add(gridHelper);
         this.meshes.push(gridHelper);
 
@@ -175,13 +212,25 @@ export class Room {
 
     createWall(x, y, w, h, color) {
         const geo = new THREE.PlaneGeometry(w, h);
+        
+        const loader = new THREE.TextureLoader();
+        // Load brick wall tile and repeat it along the wall length
+        const wallTex = loader.load('/Map_tiles/Map_tile_100.png');
+        wallTex.wrapS = THREE.RepeatWrapping;
+        wallTex.wrapT = THREE.RepeatWrapping;
+        
+        const repeatCount = Math.max(w, h);
+        wallTex.repeat.set(repeatCount, 1);
+        wallTex.minFilter = THREE.NearestFilter;
+        wallTex.magFilter = THREE.NearestFilter;
+
         const mat = new THREE.MeshStandardMaterial({
-            color,
-            roughness: 0.5,
-            metalness: 0.7
+            map: wallTex,
+            roughness: 0.6,
+            metalness: 0.2
         });
         const wall = new THREE.Mesh(geo, mat);
-        wall.position.set(x, y, 0);
+        wall.position.set(x, y, 0.01); // slightly above floor level
         this.scene.add(wall);
         this.meshes.push(wall);
     }

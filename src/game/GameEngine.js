@@ -8,6 +8,7 @@ import { Collision } from './Collision.js';
 import { PowerUpManager } from './PowerUp.js';
 import { audioManager } from './AudioManager.js';
 import { EffectsManager } from './EffectsManager.js';
+import { AnimatedSprite } from './AnimatedSprite.js';
 
 /**
  * Main game engine - orchestrates all game systems
@@ -266,6 +267,10 @@ export class GameEngine {
                     this.enemyManager.spawnBomber(enemyDef.x, enemyDef.y);
                 } else if (enemyDef.type === 'splitter') {
                     this.enemyManager.spawnSplitter(enemyDef.x, enemyDef.y);
+                } else if (enemyDef.type === 'goblin') {
+                    this.enemyManager.spawnGoblin(enemyDef.x, enemyDef.y);
+                } else if (enemyDef.type === 'ogre') {
+                    this.enemyManager.spawnOgre(enemyDef.x, enemyDef.y);
                 }
             }
 
@@ -635,6 +640,65 @@ export class GameEngine {
 
         // Enemy update (dilated dt)
         this.enemyManager.update(enemyDt, this.player.x, this.player.y, this.room.bounds);
+
+        // Check for Ogre slam shockwave triggers
+        const activeEnemies = this.enemyManager.getActive();
+        for (const enemy of activeEnemies) {
+            if (enemy.justSlammed) {
+                enemy.justSlammed = false;
+
+                // Spawn shockwave ring
+                const shockGeo = new THREE.RingGeometry(0.1, 0.15, 32);
+                const shockMat = new THREE.MeshBasicMaterial({
+                    color: 0xff3300, // Red shockwave
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide
+                });
+                const shockMesh = new THREE.Mesh(shockGeo, shockMat);
+                shockMesh.position.set(enemy.x, enemy.y, 0.06);
+                this.scene.add(shockMesh);
+
+                audioManager.play('explosion'); // Play slam explosion sound
+                this.effects.screenShake(0.4, 0.25);
+
+                const maxSlamRadius = 2.0;
+
+                // Check if player is caught in the slam shockwave range immediately
+                const dx = this.player.x - enemy.x;
+                const dy = this.player.y - enemy.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= maxSlamRadius && !this.player.shieldActive && !this.player.invincible) {
+                    const dead = this.player.takeDamage(18); // Slam deals 18 damage
+                    audioManager.play('playerHit');
+                    this.effects.hitFlash();
+                    if (dead) {
+                        this.gameOver();
+                        return;
+                    }
+                }
+
+                // Add expansion animation
+                this.tempMeshes.push({
+                    mesh: shockMesh,
+                    timer: 0.4,
+                    maxRadius: maxSlamRadius,
+                    update: (itemDt, self) => {
+                        self.timer -= itemDt;
+                        if (self.timer <= 0) {
+                            this.scene.remove(self.mesh);
+                            shockGeo.dispose();
+                            shockMat.dispose();
+                            return true;
+                        }
+                        const scale = 1 + (1 - self.timer / 0.4) * (self.maxRadius * 5);
+                        self.mesh.scale.set(scale, scale, scale);
+                        self.mesh.material.opacity = (self.timer / 0.4) * 0.9;
+                        return false;
+                    }
+                });
+            }
+        }
 
         // Projectile update (homing active if Mage)
         const activeEnemiesForHoming = this.characterData?.id === 'mage' ? this.enemyManager.getActive() : null;
@@ -1257,6 +1321,17 @@ export class GameEngine {
                     }
                 }
 
+                // Goblin thief coin stealing trigger
+                if (enemy.stealCoin) {
+                    const beforeCredits = this.player.credits || 0;
+                    enemy.stealCoin(this.player);
+                    const afterCredits = this.player.credits || 0;
+                    if (beforeCredits > afterCredits) {
+                        this.spawnFloatingIndicator(this.player.x, this.player.y + 0.6, "-1 Coin", "#e53935");
+                        this.updateHUD();
+                    }
+                }
+
                 const dead = this.player.takeDamage(enemy.damage);
 
                 // Effects
@@ -1599,14 +1674,16 @@ export class GameEngine {
     }
 
     spawnCoin(x, y) {
-        const coinGeo = new THREE.OctahedronGeometry(0.12);
-        const coinMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-        coinMesh.position.set(x, y, 0.05);
-        this.scene.add(coinMesh);
+        const coinSprite = new AnimatedSprite(this.scene, {
+            size: 0.35,
+            frameRate: 20
+        });
+        coinSprite.addAnimationSequence('spin', '/Gold', 'Gold_', '.png', 30, 20, 1, 0);
+        coinSprite.setPositionImmediate(x, y);
+        coinSprite.play('spin');
 
         this.coins.push({
-            mesh: coinMesh,
+            sprite: coinSprite,
             x: x,
             y: y,
             vx: (Math.random() - 0.5) * 3, // Initial burst speed spreading
@@ -1644,17 +1721,17 @@ export class GameEngine {
 
             coin.x += coin.vx * dt;
             coin.y += coin.vy * dt;
-            coin.mesh.position.set(coin.x, coin.y, 0.05);
 
-            // Rotate mesh
-            coin.mesh.rotation.x += dt * 1.5;
-            coin.mesh.rotation.y += dt * 2.0;
+            if (coin.sprite) {
+                coin.sprite.setPositionImmediate(coin.x, coin.y);
+                coin.sprite.update(dt);
+            }
 
             // Pick up check
             if (dist < (this.player.radius + 0.15)) {
-                this.scene.remove(coin.mesh);
-                coin.mesh.geometry.dispose();
-                coin.mesh.material.dispose();
+                if (coin.sprite) {
+                    coin.sprite.destroy();
+                }
                 this.coins.splice(i, 1);
 
                 // Increment credits

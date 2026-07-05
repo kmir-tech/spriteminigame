@@ -39,16 +39,19 @@ class Enemy {
                 frameRate: 10 // default fallback
             });
 
-            if (this.spriteFolder.startsWith('/Seer')) {
+            const folderName = this.spriteFolder.split('/').pop() || '';
+            const sequenceCharacters = ['Seer', 'Goblin', 'Ogre', 'Orc'];
+            const matchedChar = sequenceCharacters.find(char => folderName.includes(char));
+
+            if (matchedChar) {
                 // Use PNG sequences
                 const folder = this.spriteFolder;
-                const charName = 'Seer';
-                this.sprite.addAnimationSequence('idle', `${folder}/Idle`, `0_${charName}_Idle_`, '.png', 18, 10);
-                this.sprite.addAnimationSequence('walk', `${folder}/Walking`, `0_${charName}_Walking_`, '.png', 18, 12);
-                this.sprite.addAnimationSequence('run', `${folder}/Running`, `0_${charName}_Running_`, '.png', 12, 12);
-                this.sprite.addAnimationSequence('attack', `${folder}/Slashing`, `0_${charName}_Slashing_`, '.png', 12, 12);
-                this.sprite.addAnimationSequence('hurt', `${folder}/Hurt`, `0_${charName}_Hurt_`, '.png', 12, 12);
-                this.sprite.addAnimationSequence('dead', `${folder}/Dying`, `0_${charName}_Dying_`, '.png', 15, 10);
+                this.sprite.addAnimationSequence('idle', `${folder}/Idle`, `0_${matchedChar}_Idle_`, '.png', 18, 10);
+                this.sprite.addAnimationSequence('walk', `${folder}/Walking`, `0_${matchedChar}_Walking_`, '.png', 18, 12);
+                this.sprite.addAnimationSequence('run', `${folder}/Running`, `0_${matchedChar}_Running_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('attack', `${folder}/Slashing`, `0_${matchedChar}_Slashing_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('hurt', `${folder}/Hurt`, `0_${matchedChar}_Hurt_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('dead', `${folder}/Dying`, `0_${matchedChar}_Dying_`, '.png', 15, 10);
             } else {
                 // Add animations with Isaac-style frame rates
                 this.sprite.addAnimation('idle', `${this.spriteFolder}/Idle.png`, this.frameCount, 6);
@@ -787,6 +790,175 @@ export class SplitterEnemy extends Enemy {
 }
 
 /**
+ * Goblin enemy - Small, extremely fast, steals coins on contact and runs away!
+ */
+export class GoblinEnemy extends Enemy {
+    constructor(scene, x, y) {
+        super(scene, x, y, {
+            health: 12,
+            speed: 4.2, // Very fast!
+            radius: 0.35,
+            damage: 8, // Low damage, but steals!
+            spriteFolder: '/Goblin',
+            spriteSize: 1.15
+        });
+        
+        this.fleeing = false;
+        this.fleeTimer = 0;
+        
+        // Give it a green-yellow tint for a goblin appearance
+        if (this.sprite && this.sprite.material) {
+            this.sprite.material.color.setHex(0xb2ff59);
+        }
+    }
+
+    update(dt, playerX, playerY, bounds) {
+        if (!this.active) return;
+        super.update(dt, playerX, playerY, bounds);
+
+        if (this.currentState === 'hurt' || this.currentState === 'dead') return;
+
+        let dx, dy;
+        
+        if (this.fleeing) {
+            this.fleeTimer -= dt;
+            if (this.fleeTimer <= 0) {
+                this.fleeing = false;
+            }
+            
+            // Run AWAY from player
+            dx = this.x - playerX;
+            dy = this.y - playerY;
+        } else {
+            // Chase player
+            dx = playerX - this.x;
+            dy = playerY - this.y;
+        }
+
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0.1) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+
+            // Flip sprite based on direction of movement
+            if (this.sprite) {
+                this.sprite.setFacing(dx > 0);
+            }
+
+            this.setState('run');
+        } else {
+            this.setState('idle');
+        }
+
+        // Clamp to bounds
+        const clamped = Collision.clampToBounds(this.x, this.y, this.radius, bounds);
+        this.x = clamped.x;
+        this.y = clamped.y;
+
+        if (this.sprite) {
+            this.sprite.setPosition(this.x, this.y);
+        }
+    }
+
+    stealCoin(player) {
+        if (this.fleeing || this.currentState === 'dead') return;
+
+        // If player has credits, steal 1 and trigger fleeing mode!
+        if (player.credits && player.credits > 0) {
+            player.credits = Math.max(0, player.credits - 1);
+            this.fleeing = true;
+            this.fleeTimer = 3.0; // Flee for 3 seconds
+        }
+    }
+}
+
+/**
+ * Ogre enemy - Giant slow tank that slams the ground dealing heavy radial damage!
+ */
+export class OgreEnemy extends Enemy {
+    constructor(scene, x, y) {
+        super(scene, x, y, {
+            health: 80, // Heavy tank!
+            speed: 1.1,  // Slow!
+            radius: 0.65,
+            damage: 25,  // Heavy contact damage
+            spriteFolder: '/Ogre',
+            spriteSize: 2.1
+        });
+
+        this.slamTimer = 0;
+        this.attackCooldown = 0;
+        this.justSlammed = false;
+
+        // Tint Ogre greyish-blue for a stone-cold monster feel
+        if (this.sprite && this.sprite.material) {
+            this.sprite.material.color.setHex(0x90a4ae);
+        }
+    }
+
+    update(dt, playerX, playerY, bounds) {
+        if (!this.active) return;
+        super.update(dt, playerX, playerY, bounds);
+
+        if (this.currentState === 'dead') return;
+
+        // Decrement cooldowns
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= dt;
+        }
+
+        // Handle active slam
+        if (this.slamTimer > 0) {
+            this.slamTimer -= dt;
+            if (this.slamTimer <= 0) {
+                this.justSlammed = true; // Signal GameEngine to play visual explosion and damage player
+                this.setState('idle');
+            }
+            return;
+        }
+
+        if (this.currentState === 'hurt') return;
+
+        // Chase player
+        const dx = playerX - this.x;
+        const dy = playerY - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Slam if player is close and cooldown is ready
+        if (dist < 1.9 && this.attackCooldown <= 0) {
+            this.setState('attack');
+            this.slamTimer = 0.8; // 0.8s build-up
+            this.attackCooldown = 3.2; // 3.2s cooldown
+            return;
+        }
+
+        if (dist > 0.1) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+
+            // Flip sprite based on direction of movement
+            if (this.sprite) {
+                this.sprite.setFacing(dx > 0);
+            }
+
+            this.setState('run');
+        } else {
+            this.setState('idle');
+        }
+
+        // Clamp to bounds
+        const clamped = Collision.clampToBounds(this.x, this.y, this.radius, bounds);
+        this.x = clamped.x;
+        this.y = clamped.y;
+
+        if (this.sprite) {
+            this.sprite.setPosition(this.x, this.y);
+        }
+    }
+}
+
+/**
  * Enemy spawner utility
  */
 export class EnemyManager {
@@ -835,6 +1007,20 @@ export class EnemyManager {
 
     spawnSplitter(x, y, size = 'large') {
         const enemy = new SplitterEnemy(this.scene, x, y, this, size);
+        if (Math.random() < 0.12) enemy.makeElite();
+        this.enemies.push(enemy);
+        return enemy;
+    }
+
+    spawnGoblin(x, y) {
+        const enemy = new GoblinEnemy(this.scene, x, y);
+        if (Math.random() < 0.12) enemy.makeElite();
+        this.enemies.push(enemy);
+        return enemy;
+    }
+
+    spawnOgre(x, y) {
+        const enemy = new OgreEnemy(this.scene, x, y);
         if (Math.random() < 0.12) enemy.makeElite();
         this.enemies.push(enemy);
         return enemy;

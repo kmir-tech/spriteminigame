@@ -78,13 +78,16 @@ export class AnimatedSprite {
      * @param {string} suffix - Filename suffix/extension (e.g., '.png')
      * @param {number} frameCount - Number of frames in the sequence
      * @param {number} frameRate - Frames per second (default: 10)
+     * @param {number} startNum - The starting frame number (default: 0)
+     * @param {number} padLength - Number of digits to pad (0 for no padding, default: 3)
      */
-    addAnimationSequence(name, folderPath, prefix, suffix, frameCount, frameRate = 10) {
+    addAnimationSequence(name, folderPath, prefix, suffix, frameCount, frameRate = 10, startNum = 0, padLength = 3) {
         const loader = new THREE.TextureLoader();
         const textures = [];
 
         for (let i = 0; i < frameCount; i++) {
-            const frameIndex = String(i).padStart(3, '0');
+            const frameNum = startNum + i;
+            const frameIndex = padLength > 0 ? String(frameNum).padStart(padLength, '0') : String(frameNum);
             const path = `${folderPath}/${prefix}${frameIndex}${suffix}`;
             
             const texture = loader.load(path, (tex) => {
