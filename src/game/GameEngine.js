@@ -41,6 +41,7 @@ export class GameEngine {
         this.kills = 0;
         this.gameTime = 0;
         this.targetZoom = 1.0;
+        this.paused = false;
 
         // Track single-frame keystate transitions
         this.keyState = {
@@ -347,7 +348,11 @@ export class GameEngine {
                 </div>
             </div>
             
-            <div class="hud-right">
+            <div class="hud-right" style="display: flex; flex-direction: column; align-items: flex-end;">
+                <div class="hud-menu-buttons" style="margin-bottom: 12px; display: flex; gap: 8px; justify-content: flex-end; pointer-events: auto; z-index: 1001;">
+                    <button id="btn-pause" class="btn-menu" style="font-family: 'Orbitron', sans-serif; font-size: 0.7rem; font-weight: 700; padding: 6px 12px; background: rgba(0, 229, 255, 0.15); border: 1px solid #00e5ff; color: #00e5ff; cursor: pointer; border-radius: 4px; transition: all 0.2s; letter-spacing: 1px;">PAUSE</button>
+                    <button id="btn-quit" style="font-family: 'Orbitron', sans-serif; font-size: 0.7rem; font-weight: 700; padding: 6px 12px; background: rgba(255, 23, 72, 0.15); border: 1px solid #ff1744; color: #ff1744; cursor: pointer; border-radius: 4px; transition: all 0.2s; letter-spacing: 1px;">QUIT</button>
+                </div>
                 <div class="controls-hint">
                     WASD / Arrows: Move<br>
                     Mouse: Aim & Click to Shoot<br>
@@ -383,6 +388,28 @@ export class GameEngine {
             </div>
         `;
         this.container.appendChild(this.hud);
+
+        // 3. Pause Overlay
+        this.pauseOverlay = document.createElement('div');
+        this.pauseOverlay.id = 'pause-overlay';
+        this.pauseOverlay.className = 'pause-overlay';
+        this.pauseOverlay.innerHTML = `
+            <h2>GAME PAUSED</h2>
+            <button id="btn-resume" class="btn btn-resume">RESUME</button>
+            <button id="btn-pause-quit" class="btn btn-quit">QUIT TO MENU</button>
+        `;
+        this.container.appendChild(this.pauseOverlay);
+
+        // Hook up menu click events
+        const pauseBtn = document.getElementById('btn-pause');
+        const quitBtn = document.getElementById('btn-quit');
+        const resumeBtn = document.getElementById('btn-resume');
+        const pauseQuitBtn = document.getElementById('btn-pause-quit');
+
+        if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); this.togglePause(); });
+        if (quitBtn) quitBtn.addEventListener('click', (e) => { e.stopPropagation(); this.onGameOverExit(); });
+        if (resumeBtn) resumeBtn.addEventListener('click', (e) => { e.stopPropagation(); this.togglePause(); });
+        if (pauseQuitBtn) pauseQuitBtn.addEventListener('click', (e) => { e.stopPropagation(); this.onGameOverExit(); });
     }
 
     updateHUD() {
@@ -531,12 +558,37 @@ export class GameEngine {
         this.running = false;
     }
 
+    togglePause() {
+        if (!this.running) return;
+
+        this.paused = !this.paused;
+        if (this.paused) {
+            if (this.pauseOverlay) this.pauseOverlay.style.display = 'flex';
+            this.container.style.cursor = 'auto';
+            if (this.crosshair) this.crosshair.style.display = 'none';
+        } else {
+            if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
+            this.container.style.cursor = 'none';
+            if (this.crosshair) this.crosshair.style.display = 'block';
+            this.lastTime = performance.now(); // reset delta timer
+        }
+    }
+
     gameLoop() {
         if (!this.running) return;
 
         requestAnimationFrame(() => this.gameLoop());
 
+        // Check for Escape key to toggle pause state
+        if (this.input && this.input.consumeJustPressed('Escape')) {
+            this.togglePause();
+        }
+
         const now = performance.now();
+        if (this.paused) {
+            this.lastTime = now;
+            return;
+        }
         const dt = Math.min((now - this.lastTime) / 1000, 0.1); // Cap delta
         this.lastTime = now;
 
