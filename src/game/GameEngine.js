@@ -1090,6 +1090,9 @@ export class GameEngine {
             for (const enemy of enemies) {
                 if (!enemy.active) continue;
 
+                // Skip if this bullet has already hit this enemy
+                if (bullet.hitEnemies && bullet.hitEnemies.includes(enemy)) continue;
+
                 if (Collision.circleVsCircle(
                     bullet.x, bullet.y, 0.15,
                     enemy.x, enemy.y, enemy.radius
@@ -1108,6 +1111,12 @@ export class GameEngine {
                     const damageDealt = bullet.damage * (this.player.damageMultiplier || 1.0);
                     const killed = enemy.takeDamage(damageDealt);
                     this.spawnFloatingIndicator(enemy.x, enemy.y + 0.55, `-${Math.round(damageDealt)}`, '#ffeb3b');
+
+                    // Register hit
+                    if (!bullet.hitEnemies) {
+                        bullet.hitEnemies = [];
+                    }
+                    bullet.hitEnemies.push(enemy);
 
                     // Knockback enemy (Warrior class gets 1.35x knockback passive)
                     let knockbackForce = bullet.type === 'slash' ? 0.6 : 0.35;

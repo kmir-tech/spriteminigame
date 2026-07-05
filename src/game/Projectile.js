@@ -48,7 +48,8 @@ export class ProjectileManager {
                 pierceCount: 0,
                 type: 'standard',
                 lifetime: 999,
-                timeActive: 0
+                timeActive: 0,
+                hitEnemies: []
             });
         }
     }
@@ -71,6 +72,7 @@ export class ProjectileManager {
         bullet.type = bulletConfig.type || 'standard';
         bullet.lifetime = bulletConfig.lifetime || 999;
         bullet.timeActive = 0;
+        bullet.hitEnemies = [];
 
         // Visual configurations
         if (isPlayerBullet) {

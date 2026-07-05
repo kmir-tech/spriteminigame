@@ -391,10 +391,10 @@ export class RoomManager {
 
     /**
      * Calculate boss HP based on bosses defeated
-     * Formula: 100 * 2^bossesDefeated (100 → 200 → 400 → 800...)
+     * Formula: 350 * 2^bossesDefeated (350 → 700 → 1400 → 2800...)
      */
     getBossHP() {
-        return 100 * Math.pow(2, this.bossesDefeated);
+        return 350 * Math.pow(2, this.bossesDefeated);
     }
 
     /**

@@ -23,7 +23,8 @@ export const POWER_UPS = [
         icon: '⚡',
         color: '#ffeb3b',
         apply: (player) => {
-            player.speed *= 1.15;
+            player.baseSpeed *= 1.15;
+            player.speed = player.baseSpeed;
         }
     },
     {
@@ -43,7 +44,7 @@ export const POWER_UPS = [
         icon: '🔫',
         color: '#2196f3',
         apply: (player) => {
-            player.fireRate *= 0.8; // Lower = faster
+            player.fireRateMultiplier = (player.fireRateMultiplier || 1.0) * 0.8; // Lower = faster
         }
     },
     {

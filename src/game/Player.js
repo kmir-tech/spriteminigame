@@ -48,6 +48,7 @@ export class Player {
         // Power-ups collected in-game
         this.damageReduction = 0; // Armor power-up
         this.pierceCount = 0;     // Bullet piercing power-up
+        this.fireRateMultiplier = 1.0; // Fire rate multiplier power-up
 
         // Facing direction for sprite flip
         this.facingRight = true;
@@ -138,9 +139,9 @@ export class Player {
 
         // Apply Power Surge skill boost (halves the delay)
         if (this.boostActive) {
-            return baseRate * 0.5;
+            return baseRate * 0.5 * (this.fireRateMultiplier || 1.0);
         }
-        return baseRate;
+        return baseRate * (this.fireRateMultiplier || 1.0);
     }
 
     swapWeapon() {
