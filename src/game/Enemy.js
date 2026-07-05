@@ -53,13 +53,28 @@ class Enemy {
                 this.sprite.addAnimationSequence('hurt', `${folder}/Hurt`, `0_${matchedChar}_Hurt_`, '.png', 12, 12);
                 this.sprite.addAnimationSequence('dead', `${folder}/Dying`, `0_${matchedChar}_Dying_`, '.png', 15, 10);
             } else {
-                // Add animations with Isaac-style frame rates
-                this.sprite.addAnimation('idle', `${this.spriteFolder}/Idle.png`, this.frameCount, 6);
-                this.sprite.addAnimation('walk', `${this.spriteFolder}/Walk.png`, this.frameCount, 10);
-                this.sprite.addAnimation('run', `${this.spriteFolder}/Run.png`, this.frameCount, 12);
-                this.sprite.addAnimation('attack', `${this.spriteFolder}/Attack_1.png`, this.frameCount, 12);
-                this.sprite.addAnimation('hurt', `${this.spriteFolder}/Hurt.png`, this.frameCount, 8);
-                this.sprite.addAnimation('dead', `${this.spriteFolder}/Dead.png`, this.frameCount, 8);
+                // Get correct frame counts depending on folder name
+                let frames = { idle: 6, walk: 6, run: 6, attack: 6, hurt: 6, dead: 6 };
+                
+                if (this.spriteFolder.includes('Chaser')) {
+                    frames = { idle: 5, walk: 6, run: 7, attack: 4, hurt: 3, dead: 5 };
+                } else if (this.spriteFolder.includes('Wanderer')) {
+                    frames = { idle: 6, walk: 7, run: 7, attack: 5, hurt: 3, dead: 6 };
+                } else if (this.spriteFolder.includes('Fighter')) {
+                    frames = { idle: 6, walk: 8, run: 8, attack: 4, hurt: 3, dead: 3 };
+                } else if (this.spriteFolder.includes('Samurai')) {
+                    frames = { idle: 6, walk: 8, run: 8, attack: 6, hurt: 2, dead: 3 };
+                } else if (this.spriteFolder.includes('Shinobi')) {
+                    frames = { idle: 6, walk: 8, run: 8, attack: 5, hurt: 2, dead: 4 };
+                }
+
+                // Add animations with Isaac-style frame rates and correct frame counts
+                this.sprite.addAnimation('idle', `${this.spriteFolder}/Idle.png`, frames.idle, 6);
+                this.sprite.addAnimation('walk', `${this.spriteFolder}/Walk.png`, frames.walk, 10);
+                this.sprite.addAnimation('run', `${this.spriteFolder}/Run.png`, frames.run, 12);
+                this.sprite.addAnimation('attack', `${this.spriteFolder}/Attack_1.png`, frames.attack, 12);
+                this.sprite.addAnimation('hurt', `${this.spriteFolder}/Hurt.png`, frames.hurt, 8);
+                this.sprite.addAnimation('dead', `${this.spriteFolder}/Dead.png`, frames.dead, 8);
             }
 
             this.sprite.setPositionImmediate(this.x, this.y);

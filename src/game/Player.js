@@ -102,27 +102,27 @@ export class Player {
         } else if (classId === 'assassin') {
             // Assassin uses Shinobi sprite sheets
             this.sprite.addAnimation('idle', '/Shinobi/Idle.png', 6, 8);
-            this.sprite.addAnimation('walk', '/Shinobi/Walk.png', 6, 10);
-            this.sprite.addAnimation('run', '/Shinobi/Run.png', 6, 12);
-            this.sprite.addAnimation('attack', '/Shinobi/Attack_1.png', 6, 12);
-            this.sprite.addAnimation('hurt', '/Shinobi/Hurt.png', 6, 8);
-            this.sprite.addAnimation('dead', '/Shinobi/Dead.png', 6, 8);
+            this.sprite.addAnimation('walk', '/Shinobi/Walk.png', 8, 10);
+            this.sprite.addAnimation('run', '/Shinobi/Run.png', 8, 12);
+            this.sprite.addAnimation('attack', '/Shinobi/Attack_1.png', 5, 12);
+            this.sprite.addAnimation('hurt', '/Shinobi/Hurt.png', 2, 8);
+            this.sprite.addAnimation('dead', '/Shinobi/Dead.png', 4, 8);
         } else if (classId === 'tank') {
             // Tank uses Fighter sprite sheets
             this.sprite.addAnimation('idle', '/Fighter/Idle.png', 6, 8);
-            this.sprite.addAnimation('walk', '/Fighter/Walk.png', 6, 10);
-            this.sprite.addAnimation('run', '/Fighter/Run.png', 6, 12);
-            this.sprite.addAnimation('attack', '/Fighter/Attack_1.png', 6, 12);
-            this.sprite.addAnimation('hurt', '/Fighter/Hurt.png', 6, 8);
-            this.sprite.addAnimation('dead', '/Fighter/Dead.png', 6, 8);
+            this.sprite.addAnimation('walk', '/Fighter/Walk.png', 8, 10);
+            this.sprite.addAnimation('run', '/Fighter/Run.png', 8, 12);
+            this.sprite.addAnimation('attack', '/Fighter/Attack_1.png', 4, 12);
+            this.sprite.addAnimation('hurt', '/Fighter/Hurt.png', 3, 8);
+            this.sprite.addAnimation('dead', '/Fighter/Dead.png', 3, 8);
         } else {
             // Warrior uses Samurai sprite sheets
             this.sprite.addAnimation('idle', '/Samurai/Idle.png', 6, 8);
-            this.sprite.addAnimation('walk', '/Samurai/Walk.png', 6, 10);
-            this.sprite.addAnimation('run', '/Samurai/Run.png', 6, 12);
+            this.sprite.addAnimation('walk', '/Samurai/Walk.png', 8, 10);
+            this.sprite.addAnimation('run', '/Samurai/Run.png', 8, 12);
             this.sprite.addAnimation('attack', '/Samurai/Attack_1.png', 6, 12);
-            this.sprite.addAnimation('hurt', '/Samurai/Hurt.png', 6, 8);
-            this.sprite.addAnimation('dead', '/Samurai/Dead.png', 6, 8);
+            this.sprite.addAnimation('hurt', '/Samurai/Hurt.png', 2, 8);
+            this.sprite.addAnimation('dead', '/Samurai/Dead.png', 3, 8);
         }
 
         this.sprite.setPositionImmediate(this.x, this.y);
