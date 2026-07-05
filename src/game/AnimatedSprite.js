@@ -60,10 +60,47 @@ export class AnimatedSprite {
             texture,
             frameCount,
             frameRate,
-            path
+            path,
+            isSequence: false
         };
 
         // Set first animation as default
+        if (!this.currentAnim) {
+            this.play(name);
+        }
+    }
+
+    /**
+     * Add an animation from a sequence of individual PNG images
+     * @param {string} name - Animation name (e.g., 'idle', 'walk')
+     * @param {string} folderPath - Folder path (e.g., '/Seer_1/Idle')
+     * @param {string} prefix - Filename prefix (e.g., '0_Seer_Idle_')
+     * @param {string} suffix - Filename suffix/extension (e.g., '.png')
+     * @param {number} frameCount - Number of frames in the sequence
+     * @param {number} frameRate - Frames per second (default: 10)
+     */
+    addAnimationSequence(name, folderPath, prefix, suffix, frameCount, frameRate = 10) {
+        const loader = new THREE.TextureLoader();
+        const textures = [];
+
+        for (let i = 0; i < frameCount; i++) {
+            const frameIndex = String(i).padStart(3, '0');
+            const path = `${folderPath}/${prefix}${frameIndex}${suffix}`;
+            
+            const texture = loader.load(path, (tex) => {
+                tex.minFilter = THREE.NearestFilter;
+                tex.magFilter = THREE.NearestFilter;
+            });
+            textures.push(texture);
+        }
+
+        this.animations[name] = {
+            textures,
+            frameCount,
+            frameRate,
+            isSequence: true
+        };
+
         if (!this.currentAnim) {
             this.play(name);
         }
@@ -85,10 +122,13 @@ export class AnimatedSprite {
         this.frameTime = 0;
 
         // Set texture
-        this.material.map = anim.texture;
+        if (anim.isSequence) {
+            this.material.map = anim.textures[0];
+        } else {
+            this.material.map = anim.texture;
+            this.updateTextureOffset();
+        }
         this.material.needsUpdate = true;
-
-        this.updateTextureOffset();
     }
 
     /**
@@ -129,10 +169,16 @@ export class AnimatedSprite {
 
     updateTextureOffset() {
         const anim = this.animations[this.currentAnim];
-        if (!anim || !anim.texture) return;
+        if (!anim) return;
 
-        // Move texture offset to show current frame
-        anim.texture.offset.x = this.currentFrame / anim.frameCount;
+        if (anim.isSequence) {
+            if (anim.textures[this.currentFrame]) {
+                this.material.map = anim.textures[this.currentFrame];
+                this.material.needsUpdate = true;
+            }
+        } else if (anim.texture) {
+            anim.texture.offset.x = this.currentFrame / anim.frameCount;
+        }
     }
 
     /**
@@ -179,7 +225,11 @@ export class AnimatedSprite {
 
         // Dispose textures
         for (const anim of Object.values(this.animations)) {
-            if (anim.texture) {
+            if (anim.isSequence && anim.textures) {
+                for (const tex of anim.textures) {
+                    if (tex) tex.dispose();
+                }
+            } else if (anim.texture) {
                 anim.texture.dispose();
             }
         }

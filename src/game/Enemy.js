@@ -39,13 +39,25 @@ class Enemy {
                 frameRate: 10 // default fallback
             });
 
-            // Add animations with Isaac-style frame rates
-            this.sprite.addAnimation('idle', `${this.spriteFolder}/Idle.png`, this.frameCount, 6);
-            this.sprite.addAnimation('walk', `${this.spriteFolder}/Walk.png`, this.frameCount, 10);
-            this.sprite.addAnimation('run', `${this.spriteFolder}/Run.png`, this.frameCount, 12);
-            this.sprite.addAnimation('attack', `${this.spriteFolder}/Attack_1.png`, this.frameCount, 12);
-            this.sprite.addAnimation('hurt', `${this.spriteFolder}/Hurt.png`, this.frameCount, 8);
-            this.sprite.addAnimation('dead', `${this.spriteFolder}/Dead.png`, this.frameCount, 8);
+            if (this.spriteFolder.startsWith('/Seer')) {
+                // Use PNG sequences
+                const folder = this.spriteFolder;
+                const charName = 'Seer';
+                this.sprite.addAnimationSequence('idle', `${folder}/Idle`, `0_${charName}_Idle_`, '.png', 18, 10);
+                this.sprite.addAnimationSequence('walk', `${folder}/Walking`, `0_${charName}_Walking_`, '.png', 18, 12);
+                this.sprite.addAnimationSequence('run', `${folder}/Running`, `0_${charName}_Running_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('attack', `${folder}/Slashing`, `0_${charName}_Slashing_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('hurt', `${folder}/Hurt`, `0_${charName}_Hurt_`, '.png', 12, 12);
+                this.sprite.addAnimationSequence('dead', `${folder}/Dying`, `0_${charName}_Dying_`, '.png', 15, 10);
+            } else {
+                // Add animations with Isaac-style frame rates
+                this.sprite.addAnimation('idle', `${this.spriteFolder}/Idle.png`, this.frameCount, 6);
+                this.sprite.addAnimation('walk', `${this.spriteFolder}/Walk.png`, this.frameCount, 10);
+                this.sprite.addAnimation('run', `${this.spriteFolder}/Run.png`, this.frameCount, 12);
+                this.sprite.addAnimation('attack', `${this.spriteFolder}/Attack_1.png`, this.frameCount, 12);
+                this.sprite.addAnimation('hurt', `${this.spriteFolder}/Hurt.png`, this.frameCount, 8);
+                this.sprite.addAnimation('dead', `${this.spriteFolder}/Dead.png`, this.frameCount, 8);
+            }
 
             this.sprite.setPositionImmediate(this.x, this.y);
             this.sprite.play('idle');
@@ -520,17 +532,20 @@ export class ShooterEnemy extends Enemy {
             health: 20,
             speed: 0, // Stationary
             radius: 0.4,
-            damage: 10
+            damage: 10,
+            spriteFolder: '/Seer_2',
+            spriteSize: 1.3
         });
 
         this.projectileManager = projectileManager;
         this.shootTimer = 1.5;
         this.shootInterval = 2.0; // Fire every 2 seconds
         this.bulletSpeed = 4;
+        this.attackAnimTimer = 0;
 
-        // Give it a distinct purple color
-        if (this.mesh && this.mesh.material) {
-            this.mesh.material.color.setHex(0x9966ff);
+        // Tint Seer_2 purple for standard shooter look
+        if (this.sprite && this.sprite.material) {
+            this.sprite.material.color.setHex(0xbb99ff);
         }
     }
 
@@ -540,13 +555,20 @@ export class ShooterEnemy extends Enemy {
 
         if (this.currentState === 'hurt' || this.currentState === 'dead') return;
 
+        // Facing direction based on player position
+        const dx = playerX - this.x;
+        if (this.sprite) {
+            this.sprite.setFacing(dx > 0);
+        }
+
         // Shooting logic
         this.shootTimer -= dt;
         if (this.shootTimer <= 0 && this.projectileManager) {
             this.shootTimer = this.shootInterval;
+            this.setState('attack');
+            this.attackAnimTimer = 0.4; // play attack animation for 0.4 seconds
 
             // Calculate direction to player
-            const dx = playerX - this.x;
             const dy = playerY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
@@ -564,6 +586,14 @@ export class ShooterEnemy extends Enemy {
                 );
             }
         }
+
+        // Return to idle state when attack animation finishes
+        if (this.attackAnimTimer > 0) {
+            this.attackAnimTimer -= dt;
+            if (this.attackAnimTimer <= 0 && this.currentState === 'attack') {
+                this.setState('idle');
+            }
+        }
     }
 }
 
@@ -576,16 +606,18 @@ export class BomberEnemy extends Enemy {
             health: 15,
             speed: 3.5, // Fast
             radius: 0.35,
-            damage: 30 // High damage on explosion
+            damage: 30, // High damage on explosion
+            spriteFolder: '/Seer_3',
+            spriteSize: 1.3
         });
 
         this.exploding = false;
         this.explodeTimer = 0;
         this.explodeDuration = 0.5;
 
-        // Give it a distinct orange color
-        if (this.mesh && this.mesh.material) {
-            this.mesh.material.color.setHex(0xff6600);
+        // Give it a distinct red-orange tint
+        if (this.sprite && this.sprite.material) {
+            this.sprite.material.color.setHex(0xff5533);
         }
     }
 
@@ -600,9 +632,9 @@ export class BomberEnemy extends Enemy {
             this.explodeTimer -= dt;
 
             // Flash effect while exploding
-            if (this.mesh) {
+            if (this.sprite && this.sprite.material) {
                 const flash = Math.sin(this.explodeTimer * 30) > 0;
-                this.mesh.material.color.setHex(flash ? 0xffffff : 0xff3300);
+                this.sprite.material.color.setHex(flash ? 0xffffff : 0xff3300);
             }
 
             if (this.explodeTimer <= 0) {
@@ -627,6 +659,18 @@ export class BomberEnemy extends Enemy {
         if (dist > 0.1) {
             this.x += (dx / dist) * this.speed * dt;
             this.y += (dy / dist) * this.speed * dt;
+
+            // Flip sprite based on movement
+            if (this.sprite) {
+                this.sprite.setFacing(dx > 0);
+            }
+        }
+
+        // Set running state if moving
+        if (this.speed > 0 && dist > 0.1) {
+            this.setState('run');
+        } else {
+            this.setState('idle');
         }
 
         // Clamp to bounds
@@ -635,7 +679,9 @@ export class BomberEnemy extends Enemy {
         this.y = clamped.y;
 
         // Update position
-        if (this.mesh) {
+        if (this.sprite) {
+            this.sprite.setPosition(this.x, this.y);
+        } else if (this.mesh) {
             this.mesh.position.x = this.x;
             this.mesh.position.y = this.y;
         }
@@ -645,6 +691,7 @@ export class BomberEnemy extends Enemy {
         this.exploding = true;
         this.explodeTimer = this.explodeDuration;
         this.speed = 0; // Stop moving
+        this.setState('hurt'); // Stutter roar state before exploding
     }
 
     takeDamage(amount) {
@@ -669,14 +716,18 @@ export class SplitterEnemy extends Enemy {
         };
 
         const config = configs[size] || configs.large;
+        config.spriteFolder = '/Fighter';
+        config.spriteSize = size === 'large' ? 1.5 : 0.95;
+        config.frameCount = 6;
+
         super(scene, x, y, config);
 
         this.enemyManager = enemyManager;
         this.size = size;
 
-        // Give it a distinct green color
-        if (this.mesh && this.mesh.material) {
-            this.mesh.material.color.setHex(size === 'large' ? 0x33cc33 : 0x66ff66);
+        // Give it a distinct green color tint on its animated sprite
+        if (this.sprite && this.sprite.material) {
+            this.sprite.material.color.setHex(size === 'large' ? 0x33cc33 : 0x66ff66);
         }
     }
 
@@ -694,6 +745,18 @@ export class SplitterEnemy extends Enemy {
         if (dist > 0.1) {
             this.x += (dx / dist) * this.speed * dt;
             this.y += (dy / dist) * this.speed * dt;
+
+            // Flip sprite based on direction
+            if (this.sprite) {
+                this.sprite.setFacing(dx > 0);
+            }
+        }
+
+        // Set run animation state if moving
+        if (dist > 0.1) {
+            this.setState('run');
+        } else {
+            this.setState('idle');
         }
 
         // Clamp to bounds
@@ -702,7 +765,9 @@ export class SplitterEnemy extends Enemy {
         this.y = clamped.y;
 
         // Update position
-        if (this.mesh) {
+        if (this.sprite) {
+            this.sprite.setPosition(this.x, this.y);
+        } else if (this.mesh) {
             this.mesh.position.x = this.x;
             this.mesh.position.y = this.y;
         }

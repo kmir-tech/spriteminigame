@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Collision } from './Collision.js';
+import { AnimatedSprite } from './AnimatedSprite.js';
 
 /**
  * Player entity with movement, weapon systems, active skills, and ultimate abilities
@@ -82,25 +83,55 @@ export class Player {
     }
 
     createMesh() {
-        const spritePath = this.characterData?.icon || '/soilder.png';
-        const spriteSize = 1.0;
-
-        const geometry = new THREE.PlaneGeometry(spriteSize, spriteSize);
-
-        const loader = new THREE.TextureLoader();
-        const texture = loader.load(spritePath);
-        texture.minFilter = THREE.NearestFilter;
-        texture.magFilter = THREE.NearestFilter;
-
-        const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            transparent: true,
-            side: THREE.DoubleSide
+        const spriteSize = 1.35;
+        this.sprite = new AnimatedSprite(this.scene, {
+            size: spriteSize,
+            frameRate: 10
         });
 
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.z = 0.1;
-        this.scene.add(this.mesh);
+        const classId = this.characterData?.id || 'warrior';
+
+        if (classId === 'mage') {
+            // Mage uses Seer_1 PNG sequences
+            this.sprite.addAnimationSequence('idle', '/Seer_1/Idle', '0_Seer_Idle_', '.png', 18, 12);
+            this.sprite.addAnimationSequence('walk', '/Seer_1/Walking', '0_Seer_Walking_', '.png', 18, 12);
+            this.sprite.addAnimationSequence('run', '/Seer_1/Running', '0_Seer_Running_', '.png', 12, 14);
+            this.sprite.addAnimationSequence('attack', '/Seer_1/Slashing', '0_Seer_Slashing_', '.png', 12, 14);
+            this.sprite.addAnimationSequence('hurt', '/Seer_1/Hurt', '0_Seer_Hurt_', '.png', 12, 12);
+            this.sprite.addAnimationSequence('dead', '/Seer_1/Dying', '0_Seer_Dying_', '.png', 15, 10);
+        } else if (classId === 'assassin') {
+            // Assassin uses Shinobi sprite sheets
+            this.sprite.addAnimation('idle', '/Shinobi/Idle.png', 6, 8);
+            this.sprite.addAnimation('walk', '/Shinobi/Walk.png', 6, 10);
+            this.sprite.addAnimation('run', '/Shinobi/Run.png', 6, 12);
+            this.sprite.addAnimation('attack', '/Shinobi/Attack_1.png', 6, 12);
+            this.sprite.addAnimation('hurt', '/Shinobi/Hurt.png', 6, 8);
+            this.sprite.addAnimation('dead', '/Shinobi/Dead.png', 6, 8);
+        } else if (classId === 'tank') {
+            // Tank uses Fighter sprite sheets
+            this.sprite.addAnimation('idle', '/Fighter/Idle.png', 6, 8);
+            this.sprite.addAnimation('walk', '/Fighter/Walk.png', 6, 10);
+            this.sprite.addAnimation('run', '/Fighter/Run.png', 6, 12);
+            this.sprite.addAnimation('attack', '/Fighter/Attack_1.png', 6, 12);
+            this.sprite.addAnimation('hurt', '/Fighter/Hurt.png', 6, 8);
+            this.sprite.addAnimation('dead', '/Fighter/Dead.png', 6, 8);
+        } else {
+            // Warrior uses Samurai sprite sheets
+            this.sprite.addAnimation('idle', '/Samurai/Idle.png', 6, 8);
+            this.sprite.addAnimation('walk', '/Samurai/Walk.png', 6, 10);
+            this.sprite.addAnimation('run', '/Samurai/Run.png', 6, 12);
+            this.sprite.addAnimation('attack', '/Samurai/Attack_1.png', 6, 12);
+            this.sprite.addAnimation('hurt', '/Samurai/Hurt.png', 6, 8);
+            this.sprite.addAnimation('dead', '/Samurai/Dead.png', 6, 8);
+        }
+
+        this.sprite.setPositionImmediate(this.x, this.y);
+        this.sprite.play('idle');
+        this.mesh = this.sprite.mesh;
+
+        // Current animation state
+        this.currentState = 'idle';
+        this.stateTimer = 0;
 
         // Direction indicator (small green dot showing aim direction)
         const indicatorGeo = new THREE.CircleGeometry(0.08, 8);
@@ -331,21 +362,48 @@ export class Player {
             }
         }
 
+        // Decrement animation state timer
+        if (this.stateTimer > 0) {
+            this.stateTimer -= dt;
+        }
+
         // Apply sprite flip
-        this.mesh.scale.x = this.facingRight ? 1 : -1;
+        if (this.sprite) {
+            this.sprite.setFacing(this.facingRight);
+        } else {
+            this.mesh.scale.x = this.facingRight ? 1 : -1;
+        }
 
         // Apply velocity
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
+        if (this.currentState !== 'dead') {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+        }
 
         // Clamp to bounds
         const clamped = Collision.clampToBounds(this.x, this.y, this.radius, bounds);
         this.x = clamped.x;
         this.y = clamped.y;
 
-        // Update mesh position
-        this.mesh.position.x = this.x;
-        this.mesh.position.y = this.y;
+        // Update animation state based on movement
+        if (this.health <= 0) {
+            this.setState('dead');
+        } else if (this.stateTimer <= 0) {
+            if (this.vx !== 0 || this.vy !== 0) {
+                this.setState('run');
+            } else {
+                this.setState('idle');
+            }
+        }
+
+        // Update mesh/sprite position
+        if (this.sprite) {
+            this.sprite.setPosition(this.x, this.y);
+            this.sprite.update(dt);
+        } else {
+            this.mesh.position.x = this.x;
+            this.mesh.position.y = this.y;
+        }
 
         // 3. Update Direction Indicator based on Mouse World coords or movement direction
         const mouseWorldX = input.mousePos.x * (bounds.right * 1.1); // Estimate viewport bounds
@@ -385,16 +443,29 @@ export class Player {
         }
     }
 
+    setState(state, duration = 0) {
+        if (this.currentState === 'dead') return;
+        if (this.currentState === state) return;
+
+        this.currentState = state;
+        this.stateTimer = duration;
+
+        if (this.sprite) {
+            this.sprite.play(state);
+        }
+    }
+
     canShoot() {
-        return this.fireCooldown <= 0 && !this.dashActive;
+        return this.fireCooldown <= 0 && !this.dashActive && this.currentState !== 'dead';
     }
 
     shoot() {
         this.fireCooldown = this.getFireRate();
+        this.setState('attack', 0.18);
     }
 
     takeDamage(amount) {
-        if (this.invincible || this.shieldActive) return false;
+        if (this.invincible || this.shieldActive || this.currentState === 'dead') return false;
 
         // Apply damage reduction from armor power-up
         const reducedDamage = amount * (1 - Math.min(this.damageReduction, 0.75));
@@ -402,15 +473,26 @@ export class Player {
         this.invincible = true;
         this.invincibleTime = this.invincibleDuration;
 
+        if (this.health <= 0) {
+            this.setState('dead');
+        } else {
+            this.setState('hurt', 0.35); // Hurt stance for 0.35s
+        }
+
         return this.health <= 0;
     }
 
     destroy() {
-        if (this.mesh.material.map) {
-            this.mesh.material.map.dispose();
+        if (this.sprite) {
+            this.sprite.destroy();
+        } else {
+            if (this.mesh.material.map) {
+                this.mesh.material.map.dispose();
+            }
+            this.mesh.material.dispose();
+            this.mesh.geometry.dispose();
+            this.scene.remove(this.mesh);
         }
-        this.mesh.material.dispose();
-        this.mesh.geometry.dispose();
 
         if (this.shieldMesh) {
             this.shieldMesh.geometry.dispose();
@@ -420,7 +502,5 @@ export class Player {
             this.boostMesh.geometry.dispose();
             this.boostMesh.material.dispose();
         }
-
-        this.scene.remove(this.mesh);
     }
 }
