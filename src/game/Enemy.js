@@ -353,7 +353,8 @@ export class WandererEnemy extends Enemy {
                 dx / dist, dy / dist,
                 6, // speed
                 this.damage,
-                false // enemy bullet
+                false, // enemy bullet
+                { element: 'waterSpell' }
             );
         }
     }
@@ -468,7 +469,8 @@ export class BossEnemy extends Enemy {
                 dirX, dirY,
                 bulletSpeed,
                 this.damage * 0.6,
-                false // Enemy bullet
+                false, // Enemy bullet
+                { element: 'fireBall' }
             );
         }
     }
@@ -504,7 +506,8 @@ export class BossEnemy extends Enemy {
                         rx, ry,
                         6.5, // Faster bullets
                         this.damage * 0.5,
-                        false
+                        false,
+                        { element: 'fireBall' }
                     );
                 }
             }
@@ -600,7 +603,8 @@ export class ShooterEnemy extends Enemy {
                     nx, ny,
                     this.bulletSpeed,
                     this.damage,
-                    false // Enemy bullet
+                    false, // Enemy bullet
+                    { element: 'fireSpell' }
                 );
             }
         }

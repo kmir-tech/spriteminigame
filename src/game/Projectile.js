@@ -10,35 +10,51 @@ export class ProjectileManager {
         this.active = [];
         this.poolSize = 150; // Increased size to support fast weapons/spreads
 
-        // Shared geometry and default materials
-        this.geometry = new THREE.CircleGeometry(0.15, 8);
-        this.playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00e5ff }); // Cyan default
-        this.enemyMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+        // Shared PlaneGeometry for 2D sprites
+        this.geometry = new THREE.PlaneGeometry(0.42, 0.42);
 
-        // Materials cache to prevent memory leaks
-        this.materials = new Map();
-        this.materials.set('player', this.playerMaterial);
-        this.materials.set('enemy', this.enemyMaterial);
+        // Preload and cache all projectile animation sequences
+        this.projectileSequences = {
+            'fireArrow': this.loadSequence('/Projectiles/FireArrow', 'Fire Arrow_Frame_', '.png', 8),
+            'fireBall': this.loadSequence('/Projectiles/FireBall', 'Fire Ball_Frame_', '.png', 8),
+            'fireSpell': this.loadSequence('/Projectiles/FireSpell', 'Fire Spell_Frame_', '.png', 8),
+            'waterArrow': this.loadSequence('/Projectiles/WaterArrow', 'Water Arrow_Frame_', '.png', 8),
+            'waterBall': this.loadSequence('/Projectiles/WaterBall', 'Water Ball_Frame_', '.png', 12),
+            'waterSpell': this.loadSequence('/Projectiles/WaterSpell', 'Water Spell_Frame_', '.png', 8),
+        };
 
         this.initPool();
     }
 
-    getMaterial(colorHex) {
-        if (!this.materials.has(colorHex)) {
-            this.materials.set(colorHex, new THREE.MeshBasicMaterial({ color: colorHex }));
+    loadSequence(folderPath, prefix, suffix, frameCount) {
+        const loader = new THREE.TextureLoader();
+        const textures = [];
+        for (let i = 1; i <= frameCount; i++) {
+            const frameIndex = String(i).padStart(2, '0');
+            const path = `${folderPath}/${prefix}${frameIndex}${suffix}`;
+            const texture = loader.load(path);
+            texture.minFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.NearestFilter;
+            textures.push(texture);
         }
-        return this.materials.get(colorHex);
+        return textures;
     }
 
     initPool() {
         for (let i = 0; i < this.poolSize; i++) {
-            const mesh = new THREE.Mesh(this.geometry, this.playerMaterial);
+            // Create a unique material per mesh so they can have independent maps/frames
+            const material = new THREE.MeshBasicMaterial({
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(this.geometry, material);
             mesh.visible = false;
             mesh.position.z = 0.05;
             this.scene.add(mesh);
 
             this.pool.push({
                 mesh,
+                material,
                 x: 0, y: 0,
                 vx: 0, vy: 0,
                 dx: 0, dy: 0, // Direction vector components
@@ -49,7 +65,11 @@ export class ProjectileManager {
                 type: 'standard',
                 lifetime: 999,
                 timeActive: 0,
-                hitEnemies: []
+                hitEnemies: [],
+                element: 'fireBall',
+                frameCount: 8,
+                frameTime: 0,
+                currentFrame: 0
             });
         }
     }
@@ -74,17 +94,22 @@ export class ProjectileManager {
         bullet.timeActive = 0;
         bullet.hitEnemies = [];
 
-        // Visual configurations
-        if (isPlayerBullet) {
-            const colorHex = bulletConfig.color || 0x00e5ff;
-            bullet.mesh.material = this.getMaterial(colorHex);
-            
-            const size = bulletConfig.size || 0.15;
-            bullet.mesh.scale.set(size / 0.15, size / 0.15, 1);
-        } else {
-            bullet.mesh.material = this.enemyMaterial;
-            bullet.mesh.scale.set(1, 1, 1);
+        // Visual and animation configuration
+        bullet.element = bulletConfig.element || (isPlayerBullet ? 'fireBall' : 'fireSpell');
+        bullet.frameCount = bullet.element === 'waterBall' ? 12 : 8;
+        bullet.frameTime = 0;
+        bullet.currentFrame = 0;
+
+        // Apply initial texture frame
+        const seq = this.projectileSequences[bullet.element];
+        if (seq && seq[0]) {
+            bullet.material.map = seq[0];
         }
+        bullet.material.needsUpdate = true;
+
+        // Visual size scaling
+        const size = bulletConfig.size || 0.42;
+        bullet.mesh.scale.set(size / 0.42, size / 0.42, 1);
 
         bullet.mesh.position.x = x;
         bullet.mesh.position.y = y;
@@ -145,6 +170,24 @@ export class ProjectileManager {
                 }
             }
 
+            // Animate projectile frame sequence
+            bullet.frameTime += bulletDt;
+            const frameDuration = 1 / 14; // 14 frames per second
+            while (bullet.frameTime >= frameDuration) {
+                bullet.frameTime -= frameDuration;
+                bullet.currentFrame = (bullet.currentFrame + 1) % bullet.frameCount;
+            }
+
+            const seq = this.projectileSequences[bullet.element];
+            if (seq && seq[bullet.currentFrame]) {
+                bullet.material.map = seq[bullet.currentFrame];
+                bullet.material.needsUpdate = true;
+            }
+
+            // Face direction of travel
+            const angle = Math.atan2(bullet.vy, bullet.vx);
+            bullet.mesh.rotation.z = angle;
+
             // Move
             bullet.x += bullet.vx * bulletDt;
             bullet.y += bullet.vy * bulletDt;
@@ -195,13 +238,15 @@ export class ProjectileManager {
     destroy() {
         for (const bullet of this.pool) {
             this.scene.remove(bullet.mesh);
+            bullet.material.dispose();
         }
         this.geometry.dispose();
         
-        // Dispose cached materials
-        for (const mat of this.materials.values()) {
-            mat.dispose();
+        // Dispose cached textures
+        for (const seq of Object.values(this.projectileSequences)) {
+            for (const tex of seq) {
+                if (tex) tex.dispose();
+            }
         }
-        this.materials.clear();
     }
 }

@@ -795,12 +795,26 @@ export class GameEngine {
         let damage = baseDamage;
         let config = {};
 
+        // Dynamic magic element based on player character class
+        let element = 'fireBall';
+        const classId = this.characterData?.id || 'warrior';
+        if (classId === 'mage') element = 'fireBall';
+        else if (classId === 'assassin') element = 'waterArrow';
+        else if (classId === 'tank') element = 'waterBall';
+        else element = 'fireArrow'; // warrior
+
+        // Local helper to automatically inject the element configuration
+        const spawn = (sx, sy, vx, vy, spd, dmg, isPlayer, cfg) => {
+            cfg.element = element;
+            return this.projectileManager.spawn(sx, sy, vx, vy, spd, dmg, isPlayer, cfg);
+        };
+
         switch (weapon.id) {
             case 'rifle':
                 bulletSpeed = 15;
                 damage = baseDamage * 0.85;
                 config = { color: 0x00e5ff, size: 0.15 }; // Cyan
-                this.projectileManager.spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
                 audioManager.play('shoot');
                 break;
 
@@ -818,7 +832,7 @@ export class GameEngine {
                     const rx = dirX * cosVal - dirY * sinVal;
                     const ry = dirX * sinVal + dirY * cosVal;
                     
-                    this.projectileManager.spawn(this.player.x, this.player.y, rx, ry, bulletSpeed, damage, true, config);
+                    spawn(this.player.x, this.player.y, rx, ry, bulletSpeed, damage, true, config);
                 }
                 
                 this.effects.screenShake(0.25, 0.12);
@@ -837,7 +851,7 @@ export class GameEngine {
                 const ry = dirX * sinVal + dirY * cosVal;
                 
                 config = { color: 0xffeb3b, size: 0.11 }; // Yellow electric sparks
-                this.projectileManager.spawn(this.player.x, this.player.y, rx, ry, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, rx, ry, bulletSpeed, damage, true, config);
                 audioManager.play('shoot');
                 break;
 
@@ -849,7 +863,7 @@ export class GameEngine {
                     size: 0.28, 
                     pierceCount: 3 + this.player.pierceCount 
                 }; // Heavy Purple piercing bolt
-                this.projectileManager.spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
                 this.effects.screenShake(0.4, 0.16);
                 audioManager.play('enemyDeath');
                 break;
@@ -864,7 +878,7 @@ export class GameEngine {
                     type: 'slash',
                     pierceCount: 99 // Pierces everyone in swing radius
                 };
-                this.projectileManager.spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
                 audioManager.play('shoot');
                 break;
 
@@ -876,7 +890,7 @@ export class GameEngine {
                     size: 0.26, 
                     type: 'rocket'
                 };
-                this.projectileManager.spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
                 audioManager.play('shoot');
                 break;
 
@@ -884,7 +898,7 @@ export class GameEngine {
                 bulletSpeed = 12;
                 damage = baseDamage;
                 config = { color: 0x00e5ff, size: 0.15 };
-                this.projectileManager.spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
+                spawn(this.player.x, this.player.y, dirX, dirY, bulletSpeed, damage, true, config);
                 audioManager.play('shoot');
                 break;
         }
