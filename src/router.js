@@ -7,6 +7,7 @@ export class Router {
             'home': this.showHome.bind(this),
             'characters': this.showCharacters.bind(this),
             'loadouts': this.showLoadouts.bind(this),
+            'credits': this.showCredits.bind(this),
             'gameplay': this.showGameplay.bind(this)
         };
 
@@ -76,6 +77,13 @@ export class Router {
         this.hideAllPages();
         this.showNav();
         document.getElementById('page-loadouts')?.classList.add('active');
+        document.getElementById('canvas-container')?.classList.add('hidden');
+    }
+
+    showCredits() {
+        this.hideAllPages();
+        this.showNav();
+        document.getElementById('page-credits')?.classList.add('active');
         document.getElementById('canvas-container')?.classList.add('hidden');
     }
 
